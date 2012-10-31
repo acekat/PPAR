@@ -17,3 +17,16 @@ options:
 ```
 
 Des hostfiles sont fournis pour les salles 31-303, 31-304, 31-309 et 31-201.
+
+## TODO
+- MPI-IO
+- tester tableaux dynamiques
+- test tri_PRAM avec parallèlisation de la 2ème boucle for
+- fonction de vérification de la validté du tri
+- Benchmark
+  - VERSION 1 & 2 tri_PRAM séquentiel
+  - VERSION 1 & 2 tri_PRAM parallèle
+  - calcul de la fusion sur chaque processus
+  - Comparer performances MPI pur et hybride
+  - Comparer nb machines / nb processus / nb éléments (faire qques test pour voir des valeurs pertinentes)
+  - Avec/Sans optimisation -03
