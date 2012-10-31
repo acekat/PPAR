@@ -23,6 +23,7 @@
 // Optimisations:
 // - allouer moins de ressources pour les tableau
 // - faire le calcul dans chaque noeud permet d'économiser des messages (à tester)
+// - tester si chaque processus calcul la fusion
 
 int my_rank;	// rang du processus
 int left_rank;	// rang du processus de gauche
@@ -74,6 +75,7 @@ void tri_PRAM(int *tab_in, int *tab_out)
 	memset(count, 0, sizeof(count));
 	
 	// comparaisons
+	// VERSION 1
 	for (i = 0; i < k; i++) {
 		for (j = i+1; j < k; j++) {
 			if (tab_in[i] > tab_in[j])
@@ -82,6 +84,14 @@ void tri_PRAM(int *tab_in, int *tab_out)
 				count[j]++;
 		}
 	}
+
+	// VERSION 2 
+	// for (i = 0; i < k; i++) {
+	// 	for (j = 0; j < k; j++) {
+	// 		if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
+	// 			count[i]++;
+	// 	}
+	// }
 	
 	// réarrangement
 	for (i = 0; i < k; i++) {
@@ -110,6 +120,7 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 	memset(count, 0, sizeof(count));
 	
 	// comparaisons
+	// VERSION 1
 	#pragma omp parallel for private(j)
 	for (i = 0; i < k; i++) {
 		for (j = i+1; j < k; j++) {
@@ -123,6 +134,16 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 			}
 		}
 	}
+
+	// VERSION 2
+	// #pragma omp parllel for private(j) 
+	// for (i = 0; i < k; i++) {
+	// 	for (j = 0; j < k; j++) {
+	// 		if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
+	// 			count[i]++;
+	// 	}
+	// }
+
 
 	// réarrangement
 	#pragma omp parallel for
@@ -237,18 +258,18 @@ int main(int argc, char* argv[])
 	for (step = 1; step <= nb_proc; step++) {
 		if (my_rank%2 == 0) {
 			if (step%2 != 0) {
-				if (my_rank == nb_proc-1)
-					continue;				// TODO: supprimer
-				MPI_Recv(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
-				tri_fusion(tab_sort, tab_tmp);		// TODO: tester si le l'allocation du a été faite
-				MPI_Send(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
+				if (my_rank != nb_proc-1) {
+					MPI_Recv(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
+					tri_fusion(tab_sort, tab_tmp);		// TODO: tester si le l'allocation du a été faite
+					MPI_Send(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
+				}
 			}
 			else {
-				if (my_rank == 0)
-					continue;
-				MPI_Recv(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
-				tri_fusion(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
-				MPI_Send(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
+				if (my_rank != 0) {
+					MPI_Recv(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
+					tri_fusion(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
+					MPI_Send(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
+				}
 			}
 		}
 		else {
@@ -257,10 +278,10 @@ int main(int argc, char* argv[])
 				MPI_Recv(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
 			}
 			else {
-				if (my_rank == nb_proc-1)
-					continue;
-				MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
-				MPI_Recv(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
+				if (my_rank != nb_proc-1) {
+					MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
+					MPI_Recv(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
+				}
 			}
 		}
 	}
@@ -271,12 +292,13 @@ int main(int argc, char* argv[])
 	// fin du chronométrage
 	end = MPI_Wtime();
 	printf("Calcul en %g sec\n", end - start);	
+
+	// affichage des résultats
+	printf("(%d) a écrit\n", my_rank);
+	print_tab(tab_sort);
 	
 	if (my_rank == 0) {
 		// 	ecrire tab_sort dans le fichier
-		printf("(%d) a écrit\n", my_rank);
-		print_tab(tab_sort);
-
 		MPI_Send(&my_rank, 1, MPI_INT, right, TAG_WRITE, MPI_COMM_WORLD);
 	}
 	else {
@@ -292,8 +314,6 @@ int main(int argc, char* argv[])
 			// return 0;
 		}
 		// 	ecrire tab_sort à la suite du fichier
-		printf("(%d) a écrit\n", my_rank);
-		print_tab(tab_sort);
 
 		if (my_rank < nb_proc-1)
 			MPI_Send(&my_rank, 1, MPI_INT, right, TAG_WRITE, MPI_COMM_WORLD);
