@@ -1,0 +1,8 @@
+*
+
+// fichiers a ne pas ignorer
+!tris.c
+!Makefile
+!hostfile*
+!README.md
+!.gitignore
