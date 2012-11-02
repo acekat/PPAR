@@ -17,7 +17,7 @@
 
 #define N 100			// nombre d'éléments par défaut
 #define TAG_TAB 0
-#define TAG_WRITE 1
+#define TAG_CHECK 1
 
 // TODO
 // Optimisations:
@@ -136,8 +136,9 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 	}
 
 	// VERSION 2
-	// #pragma omp parllel for private(j) 
+	// #pragma omp parallel for private(j) 
 	// for (i = 0; i < k; i++) {
+	//	#pragma omp parallel for
 	// 	for (j = 0; j < k; j++) {
 	// 		if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
 	// 			count[i]++;
@@ -212,7 +213,20 @@ void tri_fusion(int *tab1, int *tab2)
 	}
 }
 
-
+/**
+ * Vérifie si les éléments du tableau sont triés
+ * @param tab
+ */
+check_tab(int *tab){
+	int i = 1;
+	while((i < nb_elem) && (tab[i-1] < tab[i]){
+		i++;
+	}
+	if(i == nb_elem){
+		return 0;
+	}
+	return 1;
+}
 
 int main(int argc, char* argv[])
 {
@@ -246,6 +260,7 @@ int main(int argc, char* argv[])
 
 	int left = my_rank-1;
 	int right = my_rank+1;
+	int max, min;
 
 	// initialise le tableau local
 	init_rand(tab_tmp);
@@ -296,18 +311,29 @@ int main(int argc, char* argv[])
 	// fin du chronométrage
 	end = MPI_Wtime();
 	printf("Calcul en %g sec\n", end - start);	
-
+	#ifndef _OPENMP
+	
 	my_offset = (long long) my_rank * (long long) sizeof(int)*nb_elem;
 
 	MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &file);
 	MPI_File_seek(file, my_offset, MPI_SEEK_SET);	
 	MPI_File_write(file, tab_sort, nb_elem, MPI_INT, &status);
 	MPI_File_close(&file);
+	#endif
+	
+	#ifdef _OPENMP
+	max = tab_sort[nb_elem];
+	MPI_Send(&max, 1, MPI_INT, right, TAG_CHECK, MPI_COMM_WORLD);
+	MPI_Recv(&min, 1, MPI_INT, left, TAG_CHECK, MPI_COMM_WORLD, &status);
+	if((check_tab(tab_sorted) || (min > tab_sorted[0])){
+		printf("%d : Le tri n'est pas correcte!\n", my_rank)
+	}
+	
+	#endif
 	
 	// affichage des résultats
 	printf("(%d) a écrit\n", my_rank);
 	print_tab(tab_sort);
-	
 	// N: nombre d'éléments à trier
 	// P: nombre de processus
 	// R: rang du processus [0..P-1]
