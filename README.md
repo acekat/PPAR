@@ -19,7 +19,6 @@ options:
 Des hostfiles sont fournis pour les salles 31-303, 31-304, 31-309 et 31-201.
 
 ## TODO
-- MPI-IO : à faire fonctionner
 - tester tableaux dynamiques
 - test tri_PRAM avec parallèlisation de la 2ème boucle for
 - fonction de vérification de la validté du tri : à tester
