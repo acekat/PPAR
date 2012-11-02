@@ -38,7 +38,7 @@ void print_tab(int *tab)
 {
 	int i;
 	for (i = 0; i < k; i++) {
-		printf("\ttab[%d] = %ld\n", i, tab[i]);
+		printf("\ttab[%d] = %d\n", i, tab[i]);
 	}
 }
 
@@ -222,6 +222,10 @@ int main(int argc, char* argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &nb_proc);
 	
 	MPI_Status  status;
+	MPI_File file; 
+	MPI_Offset my_offset, my_current_offset;
+	char filename[strlen("file_sorted.txt")+1];
+	strcpy(filename, "file_sorted.txt");
 	
 	int nb_elem = N;	// nombre d'éléments total
 
@@ -293,31 +297,16 @@ int main(int argc, char* argv[])
 	end = MPI_Wtime();
 	printf("Calcul en %g sec\n", end - start);	
 
+	my_offset = (long long) my_rank * (long long) sizeof(int)*nb_elem;
+
+	MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &file);
+	MPI_File_seek(file, my_offset, MPI_SEEK_SET);	
+	MPI_File_write(file, tab_sort, nb_elem, MPI_INT, &status);
+	MPI_File_close(&file);
+	
 	// affichage des résultats
 	printf("(%d) a écrit\n", my_rank);
 	print_tab(tab_sort);
-	
-	if (my_rank == 0) {
-		// 	ecrire tab_sort dans le fichier
-		MPI_Send(&my_rank, 1, MPI_INT, right, TAG_WRITE, MPI_COMM_WORLD);
-	}
-	else {
-		MPI_Recv(&left_rank, 1, MPI_INT, left, TAG_WRITE, MPI_COMM_WORLD, &status);
-		if (left_rank != my_rank-1) {
-			fprintf(stderr, "Erreur dans la chaîne des processus!\n");
-			
-			// MESSAGE D'ERREUR OBTENU AVEC "return 0;": POURQUOI?
-			// --------------------------------------------------------------------------
-			// mpirun noticed that the job aborted, but has no info as to the process
-			// that caused that situation.
-			// --------------------------------------------------------------------------
-			// return 0;
-		}
-		// 	ecrire tab_sort à la suite du fichier
-
-		if (my_rank < nb_proc-1)
-			MPI_Send(&my_rank, 1, MPI_INT, right, TAG_WRITE, MPI_COMM_WORLD);
-	}
 	
 	// N: nombre d'éléments à trier
 	// P: nombre de processus
