@@ -272,8 +272,8 @@ int main(int argc, char* argv[])
 	start = MPI_Wtime();
 	
 	// tri le tableau local
-	tri_PRAM(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
-	// tri_PRAM_omp(tab, tab_sort);		// TODO: tester si le l'allocation du a été faite
+	// tri_PRAM(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
+	tri_PRAM_omp(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
 
 	int step;
 	for (step = 1; step <= nb_proc; step++) {
@@ -324,8 +324,8 @@ int main(int argc, char* argv[])
 	// #endif
 	
 	// affichage des résultats
-	// printf("(%d) a écrit\n", my_rank);
-	// print_tab(tab_sort);
+	printf("(%d) a écrit\n", my_rank);
+	print_tab(tab_sort);
 	printf("(%d) a lu\n", my_rank);
 	print_tab(tab_tmp);
 
