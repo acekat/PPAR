@@ -329,6 +329,7 @@ int main(int argc, char* argv[])
 	printf("(%d) a lu\n", my_rank);
 	print_tab(tab_tmp);
 
+	// Vérification du tri
 	// #ifdef _OPENMP
 	min = tab_sort[0];
 	max = tab_sort[k-1];
