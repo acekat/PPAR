@@ -121,29 +121,29 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 	
 	// comparaisons
 	// VERSION 1
-	// #pragma omp parallel for private(j)
-	// for (i = 0; i < k; i++) {
-		// for (j = i+1; j < k; j++) {
-			// if (tab_in[i] > tab_in[j]) {
-				// #pragma omp atomic
-				// count[i]++;
-			// }
-			// else {
-				// #pragma omp atomic
-				// count[j]++;
-			// }
-		// }
-	// }
-
-	// VERSION 2
-	#pragma omp parallel for private(j) 
+	#pragma omp parallel for private(j)
 	for (i = 0; i < k; i++) {
-		#pragma omp parallel for private(j) 
-		for (j = 0; j < k; j++) {
-			if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
-	 		count[i]++;
+		for (j = i+1; j < k; j++) {
+			if (tab_in[i] > tab_in[j]) {
+				#pragma omp atomic
+				count[i]++;
+			}
+			else {
+				#pragma omp atomic
+				count[j]++;
+			}
 		}
 	}
+
+	// VERSION 2
+	// #pragma omp parallel for private(j) 
+	// for (i = 0; i < k; i++) {
+		// #pragma omp parallel for private(j) 
+		// for (j = 0; j < k; j++) {
+			// if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
+	 		// count[i]++;
+		// }
+	// }
 
 
 	// réarrangement
@@ -324,10 +324,10 @@ int main(int argc, char* argv[])
 	// #endif
 	
 	// affichage des résultats
-	printf("(%d) a écrit\n", my_rank);
-	print_tab(tab_sort);
-	printf("(%d) a lu\n", my_rank);
-	print_tab(tab_tmp);
+	// printf("(%d) a écrit\n", my_rank);
+	// print_tab(tab_sort);
+	// printf("(%d) a lu\n", my_rank);
+	// print_tab(tab_tmp);
 
 	// Vérification du tri
 	// #ifdef _OPENMP

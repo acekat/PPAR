@@ -6,3 +6,4 @@
 !hostfile*
 !README.md
 !.gitignore
+!tri_*.c

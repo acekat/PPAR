@@ -324,10 +324,10 @@ int main(int argc, char* argv[])
 	// #endif
 	
 	// affichage des résultats
-	printf("(%d) a écrit\n", my_rank);
-	print_tab(tab_sort);
-	printf("(%d) a lu\n", my_rank);
-	print_tab(tab_tmp);
+	// printf("(%d) a écrit\n", my_rank);
+	// print_tab(tab_sort);
+	// printf("(%d) a lu\n", my_rank);
+	// print_tab(tab_tmp);
 
 	// Vérification du tri
 	// #ifdef _OPENMP
