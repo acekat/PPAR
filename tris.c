@@ -325,7 +325,6 @@ int main(int argc, char* argv[])
 	
 	MPI_File_read_ordered(file, tab_tmp, k, MPI_INT, &status);
 
-	
 	MPI_File_close(&file);
 
 	//~ #endif
