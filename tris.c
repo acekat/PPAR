@@ -219,10 +219,10 @@ void tri_fusion(int *tab1, int *tab2)
  */
 check_tab(int *tab){
 	int i = 1;
-	while((i < nb_elem) && (tab[i-1] < tab[i]){
+	while((i < k) && (tab[i-1] < tab[i])){
 		i++;
 	}
-	if(i == nb_elem){
+	if(i == k){
 		return 0;
 	}
 	return 1;
@@ -311,25 +311,25 @@ int main(int argc, char* argv[])
 	// fin du chronométrage
 	end = MPI_Wtime();
 	printf("Calcul en %g sec\n", end - start);	
-	#ifndef _OPENMP
+	//~ #ifndef _OPENMP
 	
-	my_offset = (long long) my_rank * (long long) sizeof(int)*nb_elem;
+	my_offset = my_rank * sizeof(int) * nb_elem;
 
-	MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &file);
+	MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &file);
 	MPI_File_seek(file, my_offset, MPI_SEEK_SET);	
 	MPI_File_write(file, tab_sort, nb_elem, MPI_INT, &status);
 	MPI_File_close(&file);
-	#endif
-	
-	#ifdef _OPENMP
-	max = tab_sort[nb_elem];
-	MPI_Send(&max, 1, MPI_INT, right, TAG_CHECK, MPI_COMM_WORLD);
-	MPI_Recv(&min, 1, MPI_INT, left, TAG_CHECK, MPI_COMM_WORLD, &status);
-	if((check_tab(tab_sorted) || (min > tab_sorted[0])){
-		printf("%d : Le tri n'est pas correcte!\n", my_rank)
-	}
-	
-	#endif
+	//~ #endif
+	//~ 
+	//~ #ifdef _OPENMP
+	//~ max = tab_sort[nb_elem];
+	//~ MPI_Send(&max, 1, MPI_INT, right, TAG_CHECK, MPI_COMM_WORLD);
+	//~ MPI_Recv(&min, 1, MPI_INT, left, TAG_CHECK, MPI_COMM_WORLD, &status);
+	//~ if(check_tab(tab_sort) || (min > tab_sort[0])){
+		//~ printf("%d : Le tri n'est pas correcte!\n", my_rank);
+	//~ }
+	//~ 
+	//~ #endif
 	
 	// affichage des résultats
 	printf("(%d) a écrit\n", my_rank);
