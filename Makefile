@@ -3,7 +3,7 @@ T=tris
 SRC=$T.c
 
 COMP=mpicc
-FLAGS=-W
+FLAGS=-Wall
 RUN=mpirun
 P=4
 
