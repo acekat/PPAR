@@ -252,8 +252,8 @@ int main(int argc, char* argv[])
 	#pragma omp parallel
 	{
 		#ifdef _OPENMP
-		omp_set_num_threads(4);
-		printf("%d : %d threads\n", omp_get_num_threads);
+		// omp_set_num_threads(4);
+		printf("%d : %d threads\n", my_rank, omp_get_num_threads());
 		#endif
 	}
 	
