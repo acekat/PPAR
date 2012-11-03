@@ -1,5 +1,5 @@
 Tris SEQ/OMP - Version 1/2 - N - TEMPS 
-SEQ - 1 - 100 - 
-SEQ - 2 - 100 - 
+SEQ - 1 - 100 - 0.011246 sec
+SEQ - 2 - 100 - 0.00228095 sec
 OMP - 1 - 100 - 
 OMP - 2 - 100 - 

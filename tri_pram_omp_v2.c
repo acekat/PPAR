@@ -109,6 +109,7 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 {
 	int i, j, cpt;
 	int count[k];
+	printf("%d : %d threads\n", my_rank, omp_get_thread_num());
 	// int *count = (int *)malloc(k*sizeof(int));
 
 	// if (count == NULL) {

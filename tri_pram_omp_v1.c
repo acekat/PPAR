@@ -65,6 +65,7 @@ void tri_PRAM(int *tab_in, int *tab_out)
 	int i, j, cpt;
 	int count[k];
 	// int *count = (int *)malloc(k*sizeof(int));
+	printf("%d : %d threads\n", my_rank, omp_get_thread_num());
 
 	// if (count == NULL) {
 	// 	fprintf(stderr, "Erreur allocation mémoire du tableau \n");
