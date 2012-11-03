@@ -109,7 +109,7 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 {
 	int i, j, cpt;
 	int count[k];
-	printf("%d : %d threads\n", my_rank, omp_get_thread_num());
+	printf("%d : %d threads\n", my_rank, omp_get_num_threads());
 	// int *count = (int *)malloc(k*sizeof(int));
 
 	// if (count == NULL) {
@@ -249,7 +249,14 @@ int main(int argc, char* argv[])
 
 	if (argc > 1)
 		nb_elem = atoi(argv[1]);
-
+	#pragma omp parallel
+	{
+		#ifdef _OPENMP
+		omp_set_num_threads(4);
+		printf("%d : %d threads\n", omp_get_num_threads);
+		#endif
+	}
+	
 	k = nb_elem / nb_proc;
 	int tab_sort[k];
 	int tab_tmp[k];

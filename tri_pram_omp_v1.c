@@ -249,7 +249,15 @@ int main(int argc, char* argv[])
 
 	if (argc > 1)
 		nb_elem = atoi(argv[1]);
-
+	
+	#pragma omp parallel
+	{
+		#ifdef _OPENMP
+		omp_set_num_threads(4);
+		printf("%d : %d threads\n", omp_get_num_threads);
+		#endif
+	}
+	
 	k = nb_elem / nb_proc;
 	int tab_sort[k];
 	int tab_tmp[k];
