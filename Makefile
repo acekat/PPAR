@@ -37,28 +37,28 @@ endif
 
 triSV1:
 ifdef HF
-	$(RUN) -n $(P) -hostfile $(HF) $T $(N)
+	$(RUN) -n $(P) -hostfile $(HF) tri_pram_seq_v1 $(N)
 else
 	$(RUN) -n $(P) tri_pram_seq_v1 $(N)
 endif
 
 triSV2:
 ifdef HF
-	$(RUN) -n $(P) -hostfile $(HF) $T $(N)
+	$(RUN) -n $(P) -hostfile $(HF) tri_pram_seq_v2 $(N)
 else
 	$(RUN) -n $(P) tri_pram_seq_v2 $(N)
 endif
 
 triOV1:
 ifdef HF
-	$(RUN) -n $(P) -hostfile $(HF) $T $(N)
+	$(RUN) -n $(P) -hostfile $(HF) tri_pram_omp_v1 $(N)
 else
 	$(RUN) -n $(P) tri_pram_omp_v1 $(N)
 endif
 
 triOV2:
 ifdef HF
-	$(RUN) -n $(P) -hostfile $(HF) $T $(N)
+	$(RUN) -n $(P) -hostfile $(HF) tri_pram_omp_v2 $(N)
 else
 	$(RUN) -n $(P) tri_pram_omp_v2 $(N)
 endif
