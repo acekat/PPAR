@@ -225,6 +225,7 @@ int check_tab(int *tab){
 			i++;
 		else {
 			printf("%d : mauvais tri\n", my_rank);
+			print_tab(tab);
 			return 1;
 		}
 	}
