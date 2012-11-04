@@ -37,9 +37,11 @@ int k;			// nombre d'éléments par processus
 void print_tab(int *tab)
 {
 	int i;
-	for (i = 0; i < k; i++) {
-		printf("\ttab[%d] = %d\n", i, tab[i]);
+	printf("\t[");
+	for (i = 0; i < k-1; i++) {
+		printf("%d, ",tab[i]);
 	}
+	printf("%d]\n", tab[k-1]);
 }
 
 /**
@@ -238,10 +240,6 @@ int main(int argc, char* argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &nb_proc);
 	
 	MPI_Status  status;
-	MPI_File file; 
-	MPI_Offset my_offset;
-	char filename[strlen("/Vrac/file_sorted")+1];
-	strcpy(filename, "/Vrac/file_sorted");
 	
 	int nb_elem = N;	// nombre d'éléments total
 
@@ -262,7 +260,7 @@ int main(int argc, char* argv[])
 
 	int left = my_rank-1;
 	int right = my_rank+1;
-	int max, min, read, tmp;
+	int max, min;
 
 	// initialise le tableau local
 	init_rand(tab_tmp);
@@ -311,10 +309,25 @@ int main(int argc, char* argv[])
 	printf("Calcul en %g sec\n", end - start);	
 	
 	// affichage des résultats
-	// printf("(%d) a écrit\n", my_rank);
-	// print_tab(tab_sort);
-	// printf("(%d) a lu\n", my_rank);
-	// print_tab(tab_tmp);
+	printf("(%d) => ", my_rank);
+	print_tab(tab_sort);
+	
+	// Vérification du tri
+	min = tab_sort[0];
+	max = tab_sort[k-1];
+	
+	if(my_rank != nb_proc-1) {
+		MPI_Send(&max, 1, MPI_INT, right, TAG_CHECK, MPI_COMM_WORLD);
+	}
+	if(my_rank != 0){
+		MPI_Recv(&min, 1, MPI_INT, left, TAG_CHECK, MPI_COMM_WORLD, &status);
+	}
+	
+	if(check_tab(tab_sort) || (min > tab_sort[0])){
+		printf("%d : Le tri n'est pas correcte!\n", my_rank);
+		exit(1);
+	}
+	printf("%d : Le tri est correcte\n", my_rank);
 
 	/* Desactivation */
 	MPI_Finalize();

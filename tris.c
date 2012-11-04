@@ -217,10 +217,10 @@ void tri_fusion(int *tab1, int *tab2)
  * Vérifie si les éléments du tableau sont triés
  * @param tab
  */
-int check_tab(int *tab){
+int check_tab(int *tab) {
 	int i = 1;
-	while(i < k){
-		if(tab[i-1] <= tab[i]) 
+	while (i < k) {
+		if (tab[i-1] <= tab[i]) 
 			i++;
 		else {
 			printf("%d : mauvais tri\n", my_rank);
@@ -262,7 +262,7 @@ int main(int argc, char* argv[])
 
 	int left = my_rank-1;
 	int right = my_rank+1;
-	int max, min, read, tmp;
+	int max, min;
 
 	// initialise le tableau local
 	init_rand(tab_tmp);
@@ -334,14 +334,14 @@ int main(int argc, char* argv[])
 	min = tab_sort[0];
 	max = tab_sort[k-1];
 	
-	if(my_rank != nb_proc-1) {
+	if (my_rank != nb_proc-1) {
 		MPI_Send(&max, 1, MPI_INT, right, TAG_CHECK, MPI_COMM_WORLD);
 	}
-	if(my_rank != 0){
+	if (my_rank != 0) {
 		MPI_Recv(&min, 1, MPI_INT, left, TAG_CHECK, MPI_COMM_WORLD, &status);
 	}
 	
-	if(check_tab(tab_sort) || (min > tab_sort[0])){
+	if (check_tab(tab_sort) || (min > tab_sort[0])) {
 		printf("%d : Le tri n'est pas correcte!\n", my_rank);
 		exit(1);
 	}

@@ -1,8 +1,4 @@
 T=tris
-O=tri_pram_seq_v1
-P=tri_pram_seq_v2
-Q=tri_pram_omp_v1
-R=tri_pram_omp_v2
 
 SRC=$T.c
 
@@ -11,7 +7,7 @@ FLAGS=-Wall
 RUN=mpirun
 P=4
 
-all : tris tri_pram_seq_v1 tri_pram_seq_v2 tri_pram_omp_v1 tri_pram_omp_v2
+all: tris tri_pram_seq_v1 tri_pram_seq_v2 tri_pram_omp_v1 tri_pram_omp_v2
 
 tris: $(SRC)
 	$(COMP) $(FLAGS) $@.c -fopenmp -o $@
@@ -64,4 +60,4 @@ else
 endif
 
 clean:
-	rm tris tri_pram_seq_v1 tri_pram_seq_v2 tri_pram_omp_v1 tri_pram_omp_v2
+	rm $T tri_pram_seq_v1 tri_pram_seq_v2 tri_pram_omp_v1 tri_pram_omp_v2

@@ -37,9 +37,11 @@ int k;			// nombre d'éléments par processus
 void print_tab(int *tab)
 {
 	int i;
-	for (i = 0; i < k; i++) {
-		printf("\ttab[%d] = %d\n", i, tab[i]);
+	printf("\t[");
+	for (i = 0; i < k-1; i++) {
+		printf("%d, ",tab[i]);
 	}
+	printf("%d]\n", tab[k-1]);
 }
 
 /**
@@ -240,10 +242,6 @@ int main(int argc, char* argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &nb_proc);
 	
 	MPI_Status  status;
-	MPI_File file; 
-	MPI_Offset my_offset;
-	char filename[strlen("/Vrac/file_sorted")+1];
-	strcpy(filename, "/Vrac/file_sorted");
 	
 	int nb_elem = N;	// nombre d'éléments total
 
@@ -272,7 +270,7 @@ int main(int argc, char* argv[])
 
 	int left = my_rank-1;
 	int right = my_rank+1;
-	int max, min, read, tmp;
+	int max, min;
 
 	// initialise le tableau local
 	init_rand(tab_tmp);
@@ -324,23 +322,11 @@ int main(int argc, char* argv[])
 	end = MPI_Wtime();
 	printf("Calcul en %g sec\n", end - start);	
 	
-	// #ifndef _OPENMP
-	my_offset = my_rank * sizeof(int) * k;
-	MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &file);
-	MPI_File_write_at(file, my_offset, tab_sort, k, MPI_INT, &status);
-	MPI_Barrier(MPI_COMM_WORLD);
-	MPI_File_read_ordered(file, tab_tmp, k, MPI_INT, &status);
-	MPI_File_close(&file);
-	// #endif
-	
 	// affichage des résultats
-	// printf("(%d) a écrit\n", my_rank);
-	// print_tab(tab_sort);
-	// printf("(%d) a lu\n", my_rank);
-	// print_tab(tab_tmp);
+	printf("(%d) => ", my_rank);
+	print_tab(tab_sort);
 
 	// Vérification du tri
-	// #ifdef _OPENMP
 	min = tab_sort[0];
 	max = tab_sort[k-1];
 	
@@ -356,49 +342,6 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 	printf("%d : Le tri est correcte\n", my_rank);
-	// #endif
-	
-	// N: nombre d'éléments à trier
-	// P: nombre de processus
-	// R: rang du processus [0..P-1]
-	// E: numéro de l'étape [1..P]
-
-	// k = N/P
-	// R.gauche = R-1
-	// R.droite = R+1
-
-	// Pour P étapes
-	// 	Si R pair
-	// 		Si E impair
-	// 			Si R+1 == P
-	// 				continue
-	// 			recevoir tab de R.droite (bloquant)
-	// 			fusion trié du tableau reçu et du tableau local
-	// 			envoyer k plus grands éléments à R.droite
-	// 		Sinon
-	// 			Si R == 0
-	// 				continue
-	// 			recevoir tab de R.gauche (bloquant)
-	// 			fusion trié du tableau reçu et du tableau local
-	// 			envoyer k plus petits éléments à R.gauche
-	// 	Sinon
-	// 		Si E impair
-	// 			envoyer tab à R.gauche
-	// 			recevoir tab de R.gauche (bloquant)
-	// 		sinon
-	// 			Si R+1 == P
-	// 				continue
-	// 			envoyer tab à R.droite
-	// 			recevoir tab de R.droite (bloquant)
-	
-	// Si R == 0
-	// 	ecrire tab dans le fichier
-	// 	envoyer ECRIT à R.droite
-	// else
-	// 	recevoir ECRIT de R.gauche (bloquant)
-	// 	ecrire tab à la suite du fichier
-	// 	Si R < P-1
-	// 		envoyer ECRIT à R.droite
 
 	/* Desactivation */
 	MPI_Finalize();
