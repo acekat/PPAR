@@ -302,6 +302,7 @@ int main(int argc, char* argv[])
 		tri_PRAM(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
 
 	int step;
+	// VERSION 1
 	for (step = 1; step <= nb_proc; step++) {
 		if (my_rank%2 == 0) {
 			if (step%2 != 0) {
@@ -332,6 +333,40 @@ int main(int argc, char* argv[])
 			}
 		}
 	}
+	
+	// VERSION 2
+	// for (step = 1; step <= nb_proc; step++) {
+		// if (my_rank%2 == 0) {
+			// if (step%2 != 0) {
+				// if (my_rank != nb_proc-1) {
+					// MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
+					// MPI_Recv(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
+					// tri_fusion(tab_sort, tab_tmp);		// TODO: tester si le l'allocation du a été faite
+				// }
+			// }
+			// else {
+				// if (my_rank != 0) {
+					// MPI_Send(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
+					// MPI_Recv(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
+					// tri_fusion(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
+				// }
+			// }
+		// }
+		// else {
+			// if (step%2 != 0) {
+				// MPI_Send(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
+				// MPI_Recv(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
+				// tri_fusion(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
+			// }
+			// else {
+				// if (my_rank != nb_proc-1) {
+					// MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
+					// MPI_Recv(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
+					// tri_fusion(tab_sort, tab_tmp);		// TODO: tester si le l'allocation du a été faite
+				// }
+			// }
+		// }
+	// }
 	
 	// fin du chronométrage
 	end = MPI_Wtime();
