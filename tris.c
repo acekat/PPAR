@@ -17,7 +17,8 @@
 
 #define N 1572864			// nombre d'éléments par défaut
 #define TAG_TAB 0
-#define TAG_CHECK 1
+#define TAG_RES 1
+#define TAG_CHECK 2
 
 // TODO
 // Optimisations:
@@ -42,6 +43,29 @@ void print_tab(int *tab)
 		printf("%d, ",tab[i]);
 	}
 	printf("%d]\n", tab[k-1]);
+}
+
+/**
+ * Affiche le temps maximal de calcul
+ * @param total   temps total de chaque processus
+ * @param nb_proc 
+ */
+void print_results(double total, int nb_proc)
+{
+	int i;
+	double tmp;
+
+	if (my_rank != 0)
+		MPI_Send(&total, 1, MPI_DOUBLE, 0, TAG_RES, MPI_COMM_WORLD);
+	else {
+		for (i = 1; i < nb_proc; i++) {
+			MPI_Recv(&tmp, 1, MPI_DOUBLE, MPI_ANY_SOURCE, TAG_RES, MPI_COMM_WORLD, NULL);
+			total = tmp > total ? tmp : total;
+		}
+		printf("Calcul en %g sec\n", total);
+
+		// TODO: calculer l'accélération et l'efficacité
+	}
 }
 
 /**
@@ -166,7 +190,7 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 
 
 	// réarrangement
-	#pragma omp parallel for
+	#pragma omp parallel for private(cpt)
 	for (i = 0; i < k; i++) {
 		cpt = count[i];
 		tab_out[cpt] = tab_in[i];
@@ -309,12 +333,10 @@ int main(int argc, char* argv[])
 		}
 	}
 	
-	// attend tous les autres processus
-	// MPI_Barrier(MPI_COMM_WORLD);
-
 	// fin du chronométrage
 	end = MPI_Wtime();
-	printf("Calcul en %g sec\n", end - start);	
+
+	print_results(end - start, nb_proc);
 
 	// écriture dans le fichier 	
 	if (nb_elem <= N) {
@@ -337,8 +359,6 @@ int main(int argc, char* argv[])
 		// printf("(%d) a lu: ", my_rank);
 		// print_tab(tab_sort);
 	}
-	
-	// affichage des résultats
 
 	// Vérification du tri
 	int min = tab_sort[0];
@@ -349,7 +369,6 @@ int main(int argc, char* argv[])
 
 	if (my_rank != 0)
 		MPI_Recv(&min, 1, MPI_INT, left, TAG_CHECK, MPI_COMM_WORLD, &status);
-	
 	if (check_tab(tab_sort) || (min > tab_sort[0])) {
 		printf("%d : /!\\ TRI INCORRECT /!\\ \n", my_rank);
 		exit(1);
