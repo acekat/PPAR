@@ -112,7 +112,6 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 	int i, j, cpt;
 	int count[k];
 	// int *count = (int *)malloc(k*sizeof(int));
-	printf("%d : %d threads\n", my_rank, omp_get_thread_num());
 
 	// if (count == NULL) {
 	// 	fprintf(stderr, "Erreur allocation mémoire du tableau \n");
@@ -147,14 +146,16 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 	 		// count[i]++;
 		// }
 	// }
-
-
+	// printf("%d : tab_count : ", my_rank);
+	// print_tab(count);
 	// réarrangement
-	#pragma omp parallel for
+	#pragma omp parallel for private(cpt)
 	for (i = 0; i < k; i++) {
 		cpt = count[i];
 		tab_out[cpt] = tab_in[i];
 	}
+	// printf("%d : tab_out : ", my_rank);
+	// print_tab(tab_out);
 }
 
 /**
@@ -236,12 +237,12 @@ int check_tab(int *tab){
 
 int main(int argc, char* argv[])
 {
+	omp_set_num_threads(4);
 	/* Initialisation */
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &nb_proc);
 	
-	omp_set_num_threads(4);
 	
 	MPI_Status  status;
 	
@@ -249,14 +250,6 @@ int main(int argc, char* argv[])
 
 	if (argc > 1)
 		nb_elem = atoi(argv[1]);
-	
-	#pragma omp parallel
-	{
-		#ifdef _OPENMP
-		// omp_set_num_threads(4);
-		printf("%d : %d threads\n", my_rank, omp_get_num_threads());
-		#endif
-	}
 	
 	k = nb_elem / nb_proc;
 	int tab_sort[k];
@@ -276,6 +269,7 @@ int main(int argc, char* argv[])
 
 	// initialise le tableau local
 	init_rand(tab_tmp);
+	// print_tab(tab_tmp);
 
 	// début du chronométrage
 	double start, end;
@@ -284,7 +278,8 @@ int main(int argc, char* argv[])
 	// tri le tableau local
 	// tri_PRAM(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
 	tri_PRAM_omp(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
-
+	// print_tab(tab_sort);
+	
 	int step;
 	for (step = 1; step <= nb_proc; step++) {
 		if (my_rank%2 == 0) {
@@ -324,16 +319,16 @@ int main(int argc, char* argv[])
 	end = MPI_Wtime();
 	printf("Calcul en %g sec\n", end - start);	
 	
-	//~ #pragma omp parallel
-	//~ {
-		//~ #ifdef _OPENMP
-		//~ printf("%d : %d threads\n", my_rank, omp_get_num_threads());
-		//~ #endif
-	//~ }	
+	// #pragma omp parallel
+	// {
+		// #ifdef _OPENMP
+		// printf("%d : %d threads\n", my_rank, omp_get_num_threads());
+		// #endif
+	// }	
 	
 	// affichage des résultats
-	printf("(%d) => ", my_rank);
-	print_tab(tab_sort);
+	// printf("(%d) => ", my_rank);
+	// print_tab(tab_sort);
 
 	// Vérification du tri
 	min = tab_sort[0];
