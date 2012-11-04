@@ -241,6 +241,8 @@ int main(int argc, char* argv[])
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &nb_proc);
 	
+	omp_set_num_threads(4);
+	
 	MPI_Status  status;
 	
 	int nb_elem = N;	// nombre d'éléments total
@@ -321,6 +323,13 @@ int main(int argc, char* argv[])
 	// fin du chronométrage
 	end = MPI_Wtime();
 	printf("Calcul en %g sec\n", end - start);	
+	
+	//~ #pragma omp parallel
+	//~ {
+		//~ #ifdef _OPENMP
+		//~ printf("%d : %d threads\n", my_rank, omp_get_num_threads());
+		//~ #endif
+	//~ }	
 	
 	// affichage des résultats
 	printf("(%d) => ", my_rank);
