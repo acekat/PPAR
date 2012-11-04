@@ -15,7 +15,7 @@
 #include <omp.h>
 #endif
 
-#define N 100			// nombre d'éléments par défaut
+#define N 1572864			// nombre d'éléments par défaut
 #define TAG_TAB 0
 #define TAG_CHECK 1
 
@@ -37,9 +37,11 @@ int k;			// nombre d'éléments par processus
 void print_tab(int *tab)
 {
 	int i;
-	for (i = 0; i < k; i++) {
-		printf("\ttab[%d] = %d\n", i, tab[i]);
+	printf("\t[");
+	for (i = 0; i < k-1; i++) {
+		printf("%d, ",tab[i]);
 	}
+	printf("%d]\n", tab[k-1]);
 }
 
 /**
@@ -53,6 +55,23 @@ void init_rand(int *tab)
 		srandom(time(NULL)+i*my_rank);
 		tab[i] = 50*random()/RAND_MAX;		
 	}
+}
+
+/**
+ * Vérifie si les éléments du tableau sont triés
+ * @param tab
+ */
+int check_tab(int *tab) {
+	int i = 1;
+	while (i < k) {
+		if (tab[i-1] <= tab[i]) 
+			i++;
+		else {
+			printf("%d : mauvais tri local\n", my_rank);
+			return 1;
+		}
+	}
+	return 0;
 }
 
 /**
@@ -87,10 +106,10 @@ void tri_PRAM(int *tab_in, int *tab_out)
 
 	// VERSION 2 
 	// for (i = 0; i < k; i++) {
-		// for (j = 0; j < k; j++) {
-			// if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
-				// count[i]++;
-		// }
+	// 	for (j = 0; j < k; j++) {
+	// 		if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
+	// 			count[i]++;
+	// 	}
 	// }
 	
 	// réarrangement
@@ -121,29 +140,29 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 	
 	// comparaisons
 	// VERSION 1
-	// #pragma omp parallel for private(j)
-	// for (i = 0; i < k; i++) {
-		// for (j = i+1; j < k; j++) {
-			// if (tab_in[i] > tab_in[j]) {
-				// #pragma omp atomic
-				// count[i]++;
-			// }
-			// else {
-				// #pragma omp atomic
-				// count[j]++;
-			// }
-		// }
-	// }
-
-	// VERSION 2
-	#pragma omp parallel for private(j) 
+	#pragma omp parallel for private(j)
 	for (i = 0; i < k; i++) {
-		#pragma omp parallel for private(j) 
-		for (j = 0; j < k; j++) {
-			if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
-	 		count[i]++;
+		for (j = i+1; j < k; j++) {
+			if (tab_in[i] > tab_in[j]) {
+				#pragma omp atomic
+				count[i]++;
+			}
+			else {
+				#pragma omp atomic
+				count[j]++;
+			}
 		}
 	}
+
+	// VERSION 2
+	// #pragma omp parallel for private(j) 
+	// for (i = 0; i < k; i++) {
+	// 	#pragma omp parallel for private(j) 
+	// 	for (j = 0; j < k; j++) {
+	// 		if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
+	//  		count[i]++;
+	// 	}
+	// }
 
 
 	// réarrangement
@@ -213,23 +232,6 @@ void tri_fusion(int *tab1, int *tab2)
 	}
 }
 
-/**
- * Vérifie si les éléments du tableau sont triés
- * @param tab
- */
-int check_tab(int *tab) {
-	int i = 1;
-	while (i < k) {
-		if (tab[i-1] <= tab[i]) 
-			i++;
-		else {
-			printf("%d : mauvais tri\n", my_rank);
-			return 1;
-		}
-	}
-	return 0;
-}
-
 int main(int argc, char* argv[])
 {
 	/* Initialisation */
@@ -238,15 +240,14 @@ int main(int argc, char* argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &nb_proc);
 	
 	MPI_Status  status;
-	MPI_File file; 
-	MPI_Offset my_offset;
-	char filename[strlen("/Vrac/file_sorted")+1];
-	strcpy(filename, "/Vrac/file_sorted");
-	
+
 	int nb_elem = N;	// nombre d'éléments total
+	int hybride = 0;	// 0: tri MPI pur, 1: tri hybride
 
 	if (argc > 1)
 		nb_elem = atoi(argv[1]);
+	if (argc > 2)
+		hybride = !strcmp(argv[2], "-hyb");
 
 	k = nb_elem / nb_proc;
 	int tab_sort[k];
@@ -262,7 +263,6 @@ int main(int argc, char* argv[])
 
 	int left = my_rank-1;
 	int right = my_rank+1;
-	int max, min;
 
 	// initialise le tableau local
 	init_rand(tab_tmp);
@@ -272,8 +272,10 @@ int main(int argc, char* argv[])
 	start = MPI_Wtime();
 	
 	// tri le tableau local
-	// tri_PRAM(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
-	tri_PRAM_omp(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
+	if (hybride)
+		tri_PRAM_omp(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
+	else 
+		tri_PRAM(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
 
 	int step;
 	for (step = 1; step <= nb_proc; step++) {
@@ -313,84 +315,90 @@ int main(int argc, char* argv[])
 	// fin du chronométrage
 	end = MPI_Wtime();
 	printf("Calcul en %g sec\n", end - start);	
-	
-	// #ifndef _OPENMP
-	my_offset = my_rank * sizeof(int) * k;
-	MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &file);
-	MPI_File_write_at(file, my_offset, tab_sort, k, MPI_INT, &status);
-	MPI_Barrier(MPI_COMM_WORLD);
-	MPI_File_read_ordered(file, tab_tmp, k, MPI_INT, &status);
-	MPI_File_close(&file);
-	// #endif
+
+	// écriture dans le fichier 	
+	if (nb_elem <= N) {
+		MPI_File file; 
+		MPI_Offset my_offset;
+		char filename[strlen("/Vrac/ppar_cassat_ducamain_sort")+1];
+		strcpy(filename, "/Vrac/ppar_cassat_ducamain_sort");	
+
+		my_offset = my_rank * sizeof(int) * k;
+		MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &file);
+		MPI_File_write_at(file, my_offset, tab_sort, k, MPI_INT, &status);
+		// printf("(%d) a écrit: ", my_rank);
+		// print_tab(tab_sort);
+		
+		// attends que tous aient écrit
+		MPI_Barrier(MPI_COMM_WORLD);
+		
+		MPI_File_read_ordered(file, tab_sort, k, MPI_INT, &status);
+		MPI_File_close(&file);
+		// printf("(%d) a lu: ", my_rank);
+		// print_tab(tab_sort);
+	}
 	
 	// affichage des résultats
-	printf("(%d) a écrit\n", my_rank);
-	print_tab(tab_sort);
-	printf("(%d) a lu\n", my_rank);
-	print_tab(tab_tmp);
 
 	// Vérification du tri
-	// #ifdef _OPENMP
-	min = tab_sort[0];
-	max = tab_sort[k-1];
+	int min = tab_sort[0];
+	int max = tab_sort[k-1];
 	
-	if (my_rank != nb_proc-1) {
+	if (my_rank != nb_proc-1)
 		MPI_Send(&max, 1, MPI_INT, right, TAG_CHECK, MPI_COMM_WORLD);
-	}
-	if (my_rank != 0) {
+
+	if (my_rank != 0)
 		MPI_Recv(&min, 1, MPI_INT, left, TAG_CHECK, MPI_COMM_WORLD, &status);
-	}
 	
 	if (check_tab(tab_sort) || (min > tab_sort[0])) {
-		printf("%d : Le tri n'est pas correcte!\n", my_rank);
+		printf("%d : /!\\ TRI INCORRECT /!\\ \n", my_rank);
 		exit(1);
 	}
 	printf("%d : Le tri est correcte\n", my_rank);
-	// #endif
-	
-	// N: nombre d'éléments à trier
-	// P: nombre de processus
-	// R: rang du processus [0..P-1]
-	// E: numéro de l'étape [1..P]
-
-	// k = N/P
-	// R.gauche = R-1
-	// R.droite = R+1
-
-	// Pour P étapes
-	// 	Si R pair
-	// 		Si E impair
-	// 			Si R+1 == P
-	// 				continue
-	// 			recevoir tab de R.droite (bloquant)
-	// 			fusion trié du tableau reçu et du tableau local
-	// 			envoyer k plus grands éléments à R.droite
-	// 		Sinon
-	// 			Si R == 0
-	// 				continue
-	// 			recevoir tab de R.gauche (bloquant)
-	// 			fusion trié du tableau reçu et du tableau local
-	// 			envoyer k plus petits éléments à R.gauche
-	// 	Sinon
-	// 		Si E impair
-	// 			envoyer tab à R.gauche
-	// 			recevoir tab de R.gauche (bloquant)
-	// 		sinon
-	// 			Si R+1 == P
-	// 				continue
-	// 			envoyer tab à R.droite
-	// 			recevoir tab de R.droite (bloquant)
-	
-	// Si R == 0
-	// 	ecrire tab dans le fichier
-	// 	envoyer ECRIT à R.droite
-	// else
-	// 	recevoir ECRIT de R.gauche (bloquant)
-	// 	ecrire tab à la suite du fichier
-	// 	Si R < P-1
-	// 		envoyer ECRIT à R.droite
 
 	/* Desactivation */
 	MPI_Finalize();
 	return 0;
 }
+
+// N: nombre d'éléments à trier
+// P: nombre de processus
+// R: rang du processus [0..P-1]
+// E: numéro de l'étape [1..P]
+
+// k = N/P
+// R.gauche = R-1
+// R.droite = R+1
+
+// Pour P étapes
+// 	Si R pair
+// 		Si E impair
+// 			Si R+1 == P
+// 				continue
+// 			recevoir tab de R.droite (bloquant)
+// 			fusion trié du tableau reçu et du tableau local
+// 			envoyer k plus grands éléments à R.droite
+// 		Sinon
+// 			Si R == 0
+// 				continue
+// 			recevoir tab de R.gauche (bloquant)
+// 			fusion trié du tableau reçu et du tableau local
+// 			envoyer k plus petits éléments à R.gauche
+// 	Sinon
+// 		Si E impair
+// 			envoyer tab à R.gauche
+// 			recevoir tab de R.gauche (bloquant)
+// 		sinon
+// 			Si R+1 == P
+// 				continue
+// 			envoyer tab à R.droite
+// 			recevoir tab de R.droite (bloquant)
+
+// Si R == 0
+// 	ecrire tab dans le fichier
+// 	envoyer ECRIT à R.droite
+// else
+// 	recevoir ECRIT de R.gauche (bloquant)
+// 	ecrire tab à la suite du fichier
+// 	Si R < P-1
+// 		envoyer ECRIT à R.droite

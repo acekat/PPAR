@@ -5,7 +5,8 @@ SRC=$T.c
 COMP=mpicc
 FLAGS=-Wall
 RUN=mpirun
-P=4
+P=12
+N=1572864
 
 all: tris tri_pram_seq_v1 tri_pram_seq_v2 tri_pram_omp_v1 tri_pram_omp_v2
 
@@ -29,6 +30,21 @@ ifdef HF
 	$(RUN) -n $(P) -hostfile $(HF) $T $(N)
 else
 	$(RUN) -n $(P) $T $(N)
+endif
+
+nohyb:
+ifdef HF
+	$(RUN) -n $(P) -hostfile $(HF) $T $(N)
+else
+	$(RUN) -n $(P) $T $(N)
+endif
+
+hyb:
+	export OMP_NUM_THREADS=4
+ifdef HF
+	$(RUN) -n $(P) -hostfile $(HF) $T $(N) -hyb
+else
+	$(RUN) -n $(P) $T $(N) -hyb
 endif
 
 triSV1:
