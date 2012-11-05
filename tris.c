@@ -62,7 +62,7 @@ void print_results(double total, int nb_proc)
 			MPI_Recv(&tmp, 1, MPI_DOUBLE, MPI_ANY_SOURCE, TAG_RES, MPI_COMM_WORLD, NULL);
 			total = tmp > total ? tmp : total;
 		}
-		printf("Calcul en %g sec\n", total);
+		printf("\tTri en %g sec\n", total);
 
 		// TODO: calculer l'accélération et l'efficacité
 	}
@@ -82,19 +82,47 @@ void init_rand(int *tab)
 }
 
 /**
- * Vérifie si les éléments du tableau sont triés
- * @param tab
+ * Vérifie si les éléments locaus sont correctement triés
+ * @param  tab tableau des éléments locaux
+ * @return     1: tri incorrect
+ *             0: tri correct
  */
-int check_tab(int *tab) {
+int check_local(int *tab)
+{
 	int i = 1;
 	while (i < k) {
 		if (tab[i-1] <= tab[i]) 
 			i++;
 		else {
-			printf("%d : mauvais tri local\n", my_rank);
+			printf("%d : /!\\ TRI LOCAL INCORRECT /!\\ \n", my_rank);
 			return 1;
 		}
 	}
+	return 0;
+}
+
+/**
+ * Vérifie si tous les éléments sont triés correctement
+ * @param  tab tableau des éléments locaux
+ * @return     1: tri incorrect
+ *             0: tri correct
+ */
+int check_sort(int *tab)
+{
+	int min = tab[0];
+	int max = tab[k-1];
+	
+	if (my_rank != nb_proc-1)
+		MPI_Send(&max, 1, MPI_INT, my_rank+1, TAG_CHECK, MPI_COMM_WORLD);
+
+	if (my_rank != 0)
+		MPI_Recv(&min, 1, MPI_INT, my_rank-1, TAG_CHECK, MPI_COMM_WORLD, NULL);
+	
+	if (check_local(tab) || (min > tab[0])) {
+		printf("%d : /!\\ TRI GLOBAL INCORRECT /!\\ \n", my_rank);
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -111,7 +139,7 @@ void tri_PRAM(int *tab_in, int *tab_out)
 
 	if (count == NULL) {
 		fprintf(stderr, "Erreur allocation mémoire du tableau \n");
-		return;
+		exit(1);
 	}
 
 	// initialise à 0 les cases du tableau
@@ -158,7 +186,7 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 
 	if (count == NULL) {
 		fprintf(stderr, "Erreur allocation mémoire du tableau \n");
-		return;
+		exit(1);
 	}
 
 	// initialise à 0 les cases du tableau
@@ -215,7 +243,7 @@ void tri_fusion(int *tab1, int *tab2)
 
 	if (tmp == NULL) {
 		fprintf(stderr, "Erreur allocation mémoire du tableau \n");
-		return;
+		exit(1);
 	}
 
 	ind1 = 0;
@@ -288,7 +316,7 @@ int main(int argc, char* argv[])
 	
 	if ((tab_tmp == NULL) || (tab_sort == NULL)) {
 		fprintf(stderr, "Erreur allocation mémoire du tableau \n");
-		return 0;
+		exit(1);
 	}
 
 	int left = my_rank-1;
@@ -297,15 +325,18 @@ int main(int argc, char* argv[])
 	// initialise le tableau local
 	init_rand(tab_tmp);
 
+	if (my_rank == 0)
+		printf("Calcul...\n");
+
 	// début du chronométrage
 	double start, end;
 	start = MPI_Wtime();
 	
 	// tri le tableau local
 	if (hybride)
-		tri_PRAM_omp(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
+		tri_PRAM_omp(tab_tmp, tab_sort);
 	else 
-		tri_PRAM(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
+		tri_PRAM(tab_tmp, tab_sort);
 
 	int step;
 	// VERSION 1
@@ -314,14 +345,14 @@ int main(int argc, char* argv[])
 			if (step%2 != 0) {
 				if (my_rank != nb_proc-1) {
 					MPI_Recv(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
-					tri_fusion(tab_sort, tab_tmp);		// TODO: tester si le l'allocation du a été faite
+					tri_fusion(tab_sort, tab_tmp);
 					MPI_Send(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
 				}
 			}
 			else {
 				if (my_rank != 0) {
 					MPI_Recv(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
-					tri_fusion(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
+					tri_fusion(tab_tmp, tab_sort);
 					MPI_Send(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
 				}
 			}
@@ -342,36 +373,36 @@ int main(int argc, char* argv[])
 	
 	// VERSION 2
 	// for (step = 1; step <= nb_proc; step++) {
-		// if (my_rank%2 == 0) {
-			// if (step%2 != 0) {
-				// if (my_rank != nb_proc-1) {
-					// MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
-					// MPI_Recv(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
-					// tri_fusion(tab_sort, tab_tmp);		// TODO: tester si le l'allocation du a été faite
-				// }
-			// }
-			// else {
-				// if (my_rank != 0) {
-					// MPI_Send(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
-					// MPI_Recv(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
-					// tri_fusion(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
-				// }
-			// }
-		// }
-		// else {
-			// if (step%2 != 0) {
-				// MPI_Send(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
-				// MPI_Recv(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
-				// tri_fusion(tab_tmp, tab_sort);		// TODO: tester si le l'allocation du a été faite
-			// }
-			// else {
-				// if (my_rank != nb_proc-1) {
-					// MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
-					// MPI_Recv(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
-					// tri_fusion(tab_sort, tab_tmp);		// TODO: tester si le l'allocation du a été faite
-				// }
-			// }
-		// }
+	// 	if (my_rank%2 == 0) {
+	// 		if (step%2 != 0) {
+	// 			if (my_rank != nb_proc-1) {
+	// 				MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
+	// 				MPI_Recv(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
+	// 				tri_fusion(tab_sort, tab_tmp);
+	// 			}
+	// 		}
+	// 		else {
+	// 			if (my_rank != 0) {
+	// 				MPI_Send(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
+	// 				MPI_Recv(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
+	// 				tri_fusion(tab_tmp, tab_sort);
+	// 			}
+	// 		}
+	// 	}
+	// 	else {
+	// 		if (step%2 != 0) {
+	// 			MPI_Send(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
+	// 			MPI_Recv(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
+	// 			tri_fusion(tab_tmp, tab_sort);
+	// 		}
+	// 		else {
+	// 			if (my_rank != nb_proc-1) {
+	// 				MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
+	// 				MPI_Recv(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
+	// 				tri_fusion(tab_sort, tab_tmp);
+	// 			}
+	// 		}
+	// 	}
 	// }
 	
 	// fin du chronométrage
@@ -379,8 +410,12 @@ int main(int argc, char* argv[])
 
 	print_results(end - start, nb_proc);
 
+
 	// écriture dans le fichier 	
 	if (nb_elem <= N) {
+		if (my_rank == 0)
+			printf("Ecriture du fichier...\n");
+
 		MPI_File file; 
 		MPI_Offset my_offset;
 		char filename[strlen("/Vrac/ppar_cassat_ducamain_sort")+1];
@@ -402,19 +437,11 @@ int main(int argc, char* argv[])
 	}
 
 	// Vérification du tri
-	int min = tab_sort[0];
-	int max = tab_sort[k-1];
-	
-	if (my_rank != nb_proc-1)
-		MPI_Send(&max, 1, MPI_INT, right, TAG_CHECK, MPI_COMM_WORLD);
+	if (my_rank == 0)
+		printf("Vérification du tri...\n");
 
-	if (my_rank != 0)
-		MPI_Recv(&min, 1, MPI_INT, left, TAG_CHECK, MPI_COMM_WORLD, &status);
-	if (check_tab(tab_sort) || (min > tab_sort[0])) {
-		printf("%d : /!\\ TRI INCORRECT /!\\ \n", my_rank);
-		exit(1);
-	}
-	printf("%d : Le tri est correcte\n", my_rank);
+	if (!check_sort(tab_sort) && (my_rank == 0))
+		printf("\tTri correct!\n");
 
 	free(tab_sort);
 	free(tab_tmp);
