@@ -77,7 +77,7 @@ void init_rand(int *tab)
 	int i;
 	for (i = 0; i < k; i++) {
 		srandom(time(NULL)+i*my_rank);
-		tab[i] = 50*random()/RAND_MAX;		
+		tab[i] = random();		
 	}
 }
 
@@ -106,13 +106,13 @@ int check_tab(int *tab) {
 void tri_PRAM(int *tab_in, int *tab_out)
 {
 	int i, j, cpt;
-	int count[k];
-	// int *count = (int *)malloc(k*sizeof(int));
+	// int count[k];
+	int *count = (int *)malloc(k*sizeof(int));
 
-	// if (count == NULL) {
-	// 	fprintf(stderr, "Erreur allocation mémoire du tableau \n");
-	// 	return;
-	// }
+	if (count == NULL) {
+		fprintf(stderr, "Erreur allocation mémoire du tableau \n");
+		return;
+	}
 
 	// initialise à 0 les cases du tableau
 	memset(count, 0, sizeof(count));
@@ -141,6 +141,8 @@ void tri_PRAM(int *tab_in, int *tab_out)
 		cpt = count[i];
 		tab_out[cpt] = tab_in[i];
 	}
+
+	free(count);
 }
 
 /**
@@ -151,13 +153,13 @@ void tri_PRAM(int *tab_in, int *tab_out)
 void tri_PRAM_omp(int *tab_in, int *tab_out)
 {
 	int i, j, cpt;
-	int count[k];
-	// int *count = (int *)malloc(k*sizeof(int));
+	// int count[k];
+	int *count = (int *)malloc(k*sizeof(int));
 
-	// if (count == NULL) {
-	// 	fprintf(stderr, "Erreur allocation mémoire du tableau \n");
-	// 	return;
-	// }
+	if (count == NULL) {
+		fprintf(stderr, "Erreur allocation mémoire du tableau \n");
+		return;
+	}
 
 	// initialise à 0 les cases du tableau
 	memset(count, 0, sizeof(count));
@@ -195,6 +197,8 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 		cpt = count[i];
 		tab_out[cpt] = tab_in[i];
 	}
+
+	free(count);
 }
 
 /**
@@ -206,13 +210,13 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 void tri_fusion(int *tab1, int *tab2)
 {
 	int ind, ind1, ind2, i, j;
-	int tmp[2*k];
-	// int *tmp = (int *)malloc(2*k*sizeof(int));
+	// int tmp[2*k];
+	int *tmp = (int *)malloc(2*k*sizeof(int));
 
-	// if (tmp == NULL) {
-	// 	fprintf(stderr, "Erreur allocation mémoire du tableau \n");
-	// 	return;
-	// }
+	if (tmp == NULL) {
+		fprintf(stderr, "Erreur allocation mémoire du tableau \n");
+		return;
+	}
 
 	ind1 = 0;
 	ind2 = 0;
@@ -254,6 +258,8 @@ void tri_fusion(int *tab1, int *tab2)
 		tab1[i] = tmp[i];
 		tab2[j] = tmp[k+j];
 	}
+
+	free(tmp);
 }
 
 int main(int argc, char* argv[])
@@ -274,16 +280,16 @@ int main(int argc, char* argv[])
 		hybride = !strcmp(argv[2], "-hyb");
 
 	k = nb_elem / nb_proc;
-	int tab_sort[k];
-	int tab_tmp[k];
+	// int tab_sort[k];
+	// int tab_tmp[k];
 
-	// int *tab_sort = (int *)malloc(k*sizeof(int));
-	// int *tab_tmp = (int *)malloc(k*sizeof(int));
+	int *tab_sort = (int *)malloc(k*sizeof(int));
+	int *tab_tmp = (int *)malloc(k*sizeof(int));
 	
-	// if ((tab_tmp == NULL) || (tab_sort == NULL)) {
-	// 	fprintf(stderr, "Erreur allocation mémoire du tableau \n");
-	// 	return 0;
-	// }
+	if ((tab_tmp == NULL) || (tab_sort == NULL)) {
+		fprintf(stderr, "Erreur allocation mémoire du tableau \n");
+		return 0;
+	}
 
 	int left = my_rank-1;
 	int right = my_rank+1;
@@ -409,6 +415,9 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 	printf("%d : Le tri est correcte\n", my_rank);
+
+	free(tab_sort);
+	free(tab_tmp);
 
 	/* Desactivation */
 	MPI_Finalize();
