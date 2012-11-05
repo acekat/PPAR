@@ -325,6 +325,15 @@ int main(int argc, char* argv[])
 	// initialise le tableau local
 	init_rand(tab_tmp);
 
+	// #pragma omp parallel
+	// {
+	// 	#ifdef _OPENMP
+	// 	omp_set_num_threads(4);
+	// 	printf("== %d : %d threads\n", my_rank, omp_get_num_threads());
+	// 	printf("== %d : le %d\n", my_rank, omp_get_thread_num());
+	// 	#endif
+	// }
+
 	if (my_rank == 0)
 		printf("Calcul...\n");
 
