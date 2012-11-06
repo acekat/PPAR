@@ -11,7 +11,8 @@ make
 make exec <options>
 
 options:
-  P=<nombre de processus MPI>:4
+  P=<nombre de processus MPI>:12
+  PNODE=<nombre de processus par machine>:4
   N=<nombre d'éléments à trier>:100
   HF=<chemin vers un hostfile>
 ```
@@ -19,10 +20,9 @@ options:
 Des hostfiles sont fournis pour les salles 31-303, 31-304, 31-309 et 31-201.
 
 ## TODO
-- tester tableaux dynamiques
 - Benchmark
-  - VERSION 1 & 2 tri_PRAM séquentiel
-  - VERSION 1 & 2 tri_PRAM parallèle
+  - VERSION 1 & 2 tri_PRAM MPI only
+  - VERSION 1 & 2 tri_PRAM Hybride
   - calcul de la fusion sur chaque processus
   - Comparer performances MPI pur et hybride
   - Comparer nb machines / nb processus / nb éléments (faire qques test pour voir des valeurs pertinentes)

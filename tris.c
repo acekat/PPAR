@@ -194,29 +194,29 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
 	
 	// comparaisons
 	// VERSION 1
-	#pragma omp parallel for private(j)
-	for (i = 0; i < k; i++) {
-		for (j = i+1; j < k; j++) {
-			if (tab_in[i] > tab_in[j]) {
-				#pragma omp atomic
-				count[i]++;
-			}
-			else {
-				#pragma omp atomic
-				count[j]++;
-			}
-		}
-	}
-
-	// VERSION 2
-	// #pragma omp parallel for private(j) 
+	// #pragma omp parallel for private(j)
 	// for (i = 0; i < k; i++) {
-	// 	#pragma omp parallel for private(j) 
-	// 	for (j = 0; j < k; j++) {
-	// 		if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
-	//  		count[i]++;
+	// 	for (j = i+1; j < k; j++) {
+	// 		if (tab_in[i] > tab_in[j]) {
+	// 			#pragma omp atomic
+	// 			count[i]++;
+	// 		}
+	// 		else {
+	// 			#pragma omp atomic
+	// 			count[j]++;
+	// 		}
 	// 	}
 	// }
+
+	// VERSION 2
+	#pragma omp parallel for private(j) 
+	for (i = 0; i < k; i++) {
+		#pragma omp parallel for private(j) 
+		for (j = 0; j < k; j++) {
+			if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
+	 		count[i]++;
+		}
+	}
 
 
 	// réarrangement
@@ -235,10 +235,9 @@ void tri_PRAM_omp(int *tab_in, int *tab_out)
  * @param tab1 
  * @param tab2 
  */
-void tri_fusion(int *tab1, int *tab2)
+void merge(int *tab1, int *tab2)
 {
-	int ind, ind1, ind2, i, j;
-	// int tmp[2*k];
+	int ind, ind1, ind2;
 	int *tmp = (int *)malloc(2*k*sizeof(int));
 
 	if (tmp == NULL) {
@@ -250,22 +249,14 @@ void tri_fusion(int *tab1, int *tab2)
 	ind2 = 0;
 	
 	for (ind = 0; ind < k*2; ind++) {
+		// recopier la fin de tab2 dans tmp
 		if (ind1 >= k) {
-			// recopier la fin de tab2 dans tmp
-			// memcpy(tmp+(ind*sizeof(int)), tab2+(ind2*sizeof(int)), (k-ind2)*sizeof(int)); 
-			for (i = ind; i < k*2; i++, ind++, ind2++) {
-				tmp[ind] = tab2[ind2];
-			}			
-			// printf("tab1 vide, ind2 = %d ; ind = %d\n", ind2, ind);
+			memcpy(tmp+ind, tab2+ind2, (k-ind2)*sizeof(int)); 
 			break;
 		}
+		// recopier la fin de tab1 dans tmp
 		if (ind2 >= k) {
-			// recopier la fin de tab1 dans tmp
-			// memcpy(tmp+(ind*sizeof(int)), tab1+(ind1*sizeof(int)), (k-ind1)*sizeof(int));
-			for (i = ind; i < k*2; i++, ind++, ind1++) {
-				tmp[ind] = tab1[ind1];  
-			}
-			// printf("tab2 vide, ind1 = %d ; ind = %d\n", ind1, ind);
+			memcpy(tmp+ind, tab1+ind1, (k-ind1)*sizeof(int));
 			break;
 		}
 		
@@ -280,12 +271,8 @@ void tri_fusion(int *tab1, int *tab2)
 	}
 	
 	// decouper tmp dans tab1 et tab2
-	// memcpy(tab1, tmp, k*sizeof(int));
-	// memcpy(tab2, tmp+(k*sizeof(int)), k*sizeof(int));
-	for (i = 0, j = 0; i < k; i++, j++) {
-		tab1[i] = tmp[i];
-		tab2[j] = tmp[k+j];
-	}
+	memcpy(tab1, tmp, k*sizeof(int));
+	memcpy(tab2, tmp+k, k*sizeof(int));
 
 	free(tmp);
 }
@@ -308,8 +295,6 @@ int main(int argc, char* argv[])
 		hybride = !strcmp(argv[2], "-hyb");
 
 	k = nb_elem / nb_proc;
-	// int tab_sort[k];
-	// int tab_tmp[k];
 
 	int *tab_sort = (int *)malloc(k*sizeof(int));
 	int *tab_tmp = (int *)malloc(k*sizeof(int));
@@ -354,14 +339,14 @@ int main(int argc, char* argv[])
 			if (step%2 != 0) {
 				if (my_rank != nb_proc-1) {
 					MPI_Recv(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
-					tri_fusion(tab_sort, tab_tmp);
+					merge(tab_sort, tab_tmp);
 					MPI_Send(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
 				}
 			}
 			else {
 				if (my_rank != 0) {
 					MPI_Recv(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
-					tri_fusion(tab_tmp, tab_sort);
+					merge(tab_tmp, tab_sort);
 					MPI_Send(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
 				}
 			}
@@ -387,14 +372,14 @@ int main(int argc, char* argv[])
 	// 			if (my_rank != nb_proc-1) {
 	// 				MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
 	// 				MPI_Recv(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
-	// 				tri_fusion(tab_sort, tab_tmp);
+	// 				merge(tab_sort, tab_tmp);
 	// 			}
 	// 		}
 	// 		else {
 	// 			if (my_rank != 0) {
 	// 				MPI_Send(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
 	// 				MPI_Recv(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
-	// 				tri_fusion(tab_tmp, tab_sort);
+	// 				merge(tab_tmp, tab_sort);
 	// 			}
 	// 		}
 	// 	}
@@ -402,13 +387,13 @@ int main(int argc, char* argv[])
 	// 		if (step%2 != 0) {
 	// 			MPI_Send(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
 	// 			MPI_Recv(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
-	// 			tri_fusion(tab_tmp, tab_sort);
+	// 			merge(tab_tmp, tab_sort);
 	// 		}
 	// 		else {
 	// 			if (my_rank != nb_proc-1) {
 	// 				MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
 	// 				MPI_Recv(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
-	// 				tri_fusion(tab_sort, tab_tmp);
+	// 				merge(tab_sort, tab_tmp);
 	// 			}
 	// 		}
 	// 	}
@@ -418,7 +403,6 @@ int main(int argc, char* argv[])
 	end = MPI_Wtime();
 
 	print_results(end - start, nb_proc);
-
 
 	// écriture dans le fichier 	
 	if (nb_elem <= N) {
