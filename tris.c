@@ -20,11 +20,6 @@
 #define TAG_RES 1
 #define TAG_CHECK 2
 
-// TODO
-// Optimisations:
-// - allouer moins de ressources pour les tableau
-// - faire le calcul dans chaque noeud permet d'économiser des messages (à tester)
-// - tester si chaque processus calcul la fusion
 
 int my_rank;	// rang du processus
 int left_rank;	// rang du processus de gauche

@@ -13,13 +13,16 @@ make exec <options>
 options:
   P=<nombre de processus MPI>:12
   PNODE=<nombre de processus par machine>:4
-  N=<nombre d'éléments à trier>:100
+  N=<nombre d'éléments à trier>:1572864
   HF=<chemin vers un hostfile>
 ```
 
 Des hostfiles sont fournis pour les salles 31-303, 31-304, 31-309 et 31-201.
 
 ## TODO
+- calculer l'accélération et l'efficacité dans les résultats
+- allouer moins de ressources pour les tableau
+- faire le calcul dans chaque noeud (économie de messages, plus performant?)
 - Benchmark
   - VERSION 1 & 2 tri_PRAM MPI only
   - VERSION 1 & 2 tri_PRAM Hybride
