@@ -20,9 +20,7 @@
 #define TAG_RES 1
 #define TAG_CHECK 2
 
-
 int my_rank;	// rang du processus
-int left_rank;	// rang du processus de gauche
 int nb_proc;	// nombre de processus
 int k;			// nombre d'éléments par processus
 
@@ -129,17 +127,13 @@ int check_sort(int *tab)
 void tri_PRAM(int *tab_in, int *tab_out)
 {
 	int i, j, cpt;
-	// int count[k];
-	int *count = (int *)malloc(k*sizeof(int));
+	int *count = (int *)calloc(k, sizeof(int));
 
 	if (count == NULL) {
 		fprintf(stderr, "Erreur allocation mémoire du tableau \n");
 		exit(1);
 	}
 
-	// initialise à 0 les cases du tableau
-	memset(count, 0, sizeof(count));
-	
 	// comparaisons
 	// VERSION 1
 	for (i = 0; i < k; i++) {
@@ -176,42 +170,46 @@ void tri_PRAM(int *tab_in, int *tab_out)
 void tri_PRAM_omp(int *tab_in, int *tab_out)
 {
 	int i, j, cpt;
-	// int count[k];
-	int *count = (int *)malloc(k*sizeof(int));
+	int *count = (int *)calloc(k, sizeof(int));
 
 	if (count == NULL) {
 		fprintf(stderr, "Erreur allocation mémoire du tableau \n");
 		exit(1);
 	}
 
-	// initialise à 0 les cases du tableau
-	memset(count, 0, sizeof(count));
+	// #pragma omp parallel
+	// {
+	// 	#ifdef _OPENMP
+	// 	printf("== %d : %d threads\n", my_rank, omp_get_num_threads());
+	// 	printf("== %d : %d\n", my_rank, omp_get_thread_num());
+	// 	#endif
+	// }
 	
 	// comparaisons
 	// VERSION 1
-	// #pragma omp parallel for private(j)
-	// for (i = 0; i < k; i++) {
-	// 	for (j = i+1; j < k; j++) {
-	// 		if (tab_in[i] > tab_in[j]) {
-	// 			#pragma omp atomic
-	// 			count[i]++;
-	// 		}
-	// 		else {
-	// 			#pragma omp atomic
-	// 			count[j]++;
-	// 		}
-	// 	}
-	// }
-
-	// VERSION 2
-	#pragma omp parallel for private(j) 
+	#pragma omp parallel for private(j)
 	for (i = 0; i < k; i++) {
-		#pragma omp parallel for private(j) 
-		for (j = 0; j < k; j++) {
-			if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
-	 		count[i]++;
+		for (j = i+1; j < k; j++) {
+			if (tab_in[i] > tab_in[j]) {
+				#pragma omp atomic
+				count[i]++;
+			}
+			else {
+				#pragma omp atomic
+				count[j]++;
+			}
 		}
 	}
+
+
+	// VERSION 2
+	// #pragma omp parallel for private(j) 
+	// for (i = 0; i < k; i++) {
+	// 	for (j = 0; j < k; j++) {
+	// 		if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
+	// 		count[i]++;
+	// 	}
+	// }
 
 
 	// réarrangement
@@ -272,6 +270,8 @@ void merge(int *tab1, int *tab2)
 	free(tmp);
 }
 
+
+
 int main(int argc, char* argv[])
 {
 	/* Initialisation */
@@ -304,15 +304,6 @@ int main(int argc, char* argv[])
 
 	// initialise le tableau local
 	init_rand(tab_tmp);
-
-	// #pragma omp parallel
-	// {
-	// 	#ifdef _OPENMP
-	// 	omp_set_num_threads(4);
-	// 	printf("== %d : %d threads\n", my_rank, omp_get_num_threads());
-	// 	printf("== %d : le %d\n", my_rank, omp_get_thread_num());
-	// 	#endif
-	// }
 
 	if (my_rank == 0)
 		printf("Calcul...\n");

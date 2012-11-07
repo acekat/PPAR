@@ -4,7 +4,6 @@
 !tris.c
 !Makefile
 !hostfile*
+!resultats.txt
 !README.md
 !.gitignore
-!tri_*.c
-!resultats.txt
