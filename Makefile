@@ -4,12 +4,16 @@ SRC=$T.c
 
 COMP=mpicc
 FLAGS=-Wall -O3
-#FLAGS=-Wall -O3 -funroll-loops
 RUN=mpirun
+
 P=48
 PNODE=4
 TH=4
 N=1572864
+
+ifdef HF
+HFOPT=-hostfile $(HF)
+endif
 
 all: tris
 
@@ -21,18 +25,10 @@ exec:
 	make hyb HF=hostfile201 P=12 PNODE=1
 
 nohyb:
-ifdef HF
-	$(RUN) -n $(P) -npernode $(PNODE) -hostfile $(HF) $T $(N)
-else
-	$(RUN) -n $(P) -npernode $(PNODE) $T $(N)
-endif
+	$(RUN) -n $(P) -npernode $(PNODE) $(HFOPT) $T $(N)
 
 hyb:
-ifdef HF
-	$(RUN) -x OMP_NUM_THREADS=$(TH) -n $(P) -npernode $(PNODE) -hostfile $(HF) $T $(N) -hyb
-else
-	$(RUN) -x OMP_NUM_THREADS=$(TH) -n $(P) -npernode $(PNODE) $T $(N) -hyb
-endif
+	$(RUN) -x OMP_NUM_THREADS=$(TH) -n $(P) -npernode $(PNODE) $(HFOPT) $T $(N) -hyb
 
 clean:
 	rm $T
