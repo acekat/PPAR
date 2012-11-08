@@ -15,7 +15,7 @@
 #include <omp.h>
 #endif
 
-#define N 1572864			// nombre d'éléments par défaut
+#define N 1572864	// nombre maximum d'éléments à imprimer
 #define TAG_TAB 0
 #define TAG_RES 1
 #define TAG_CHECK 2
@@ -23,6 +23,15 @@
 int my_rank;	// rang du processus
 int nb_proc;	// nombre de processus
 int k;			// nombre d'éléments par processus
+
+char usage[] = "\
+\nUsage:\n\
+  tris <nb elem> <type tri>\n\
+\n\
+  <type tri>:\n\
+    1: PRAM - MPI pur\n\
+    2: PRAM - hybride\n\
+";
 
 /**
  * Affiche le contenu du tableau.
@@ -124,7 +133,7 @@ int check_sort(int *tab)
  * @param tab_in  
  * @param tab_out 
  */
-void tri_PRAM(int *tab_in, int *tab_out)
+void PRAM(int *tab_in, int *tab_out)
 {
 	int i, j, cpt;
 	int *count = (int *)calloc(k, sizeof(int));
@@ -167,7 +176,7 @@ void tri_PRAM(int *tab_in, int *tab_out)
  * @param tab_in  
  * @param tab_out 
  */
-void tri_PRAM_omp(int *tab_in, int *tab_out)
+void PRAM_omp(int *tab_in, int *tab_out)
 {
 	int i, j, cpt;
 	int *count = (int *)calloc(k, sizeof(int));
@@ -274,6 +283,11 @@ void merge(int *tab1, int *tab2)
 
 int main(int argc, char* argv[])
 {
+	if (argc != 3) {
+		fprintf(stderr, "%s\n", usage);
+		return 0;
+	}
+
 	/* Initialisation */
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
@@ -281,13 +295,11 @@ int main(int argc, char* argv[])
 	
 	MPI_Status  status;
 
-	int nb_elem = N;	// nombre d'éléments total
-	int hybride = 0;	// 0: tri MPI pur, 1: tri hybride
-
-	if (argc > 1)
-		nb_elem = atoi(argv[1]);
-	if (argc > 2)
-		hybride = !strcmp(argv[2], "-hyb");
+	// TODO: tester != 0
+	int nb_elem = atoi(argv[1]);	// nombre d'éléments total
+	int sort_type = atoi(argv[2]);
+	// 1: PRAM - MPI pur
+	// 2: PRAM - hybride
 
 	k = nb_elem / nb_proc;
 
@@ -296,6 +308,7 @@ int main(int argc, char* argv[])
 	
 	if ((tab_tmp == NULL) || (tab_sort == NULL)) {
 		fprintf(stderr, "Erreur allocation mémoire du tableau \n");
+		MPI_Finalize();
 		exit(1);
 	}
 
@@ -313,77 +326,29 @@ int main(int argc, char* argv[])
 	start = MPI_Wtime();
 	
 	// tri le tableau local
-	if (hybride)
-		tri_PRAM_omp(tab_tmp, tab_sort);
-	else 
-		tri_PRAM(tab_tmp, tab_sort);
+	if (sort_type == 1)
+		PRAM(tab_tmp, tab_sort);
+	else if (sort_type == 2)
+		PRAM_omp(tab_tmp, tab_sort);
 
+	// tri pair-impair
 	int step;
-	// VERSION 1
-	for (step = 1; step <= nb_proc; step++) {
-		if (my_rank%2 == 0) {
-			if (step%2 != 0) {
-				if (my_rank != nb_proc-1) {
-					MPI_Recv(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
-					merge(tab_sort, tab_tmp);
-					MPI_Send(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
-				}
-			}
-			else {
-				if (my_rank != 0) {
-					MPI_Recv(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
-					merge(tab_tmp, tab_sort);
-					MPI_Send(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
-				}
+	for (step = 0; step < nb_proc; step++) {
+		if ((my_rank%2) - (step%2) == 0) {
+			if (my_rank != nb_proc-1) {
+				MPI_Recv(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
+				merge(tab_sort, tab_tmp);
+				MPI_Send(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
 			}
 		}
 		else {
-			if (step%2 != 0) {
+			if (my_rank != 0) {
 				MPI_Send(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
 				MPI_Recv(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
-			}
-			else {
-				if (my_rank != nb_proc-1) {
-					MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
-					MPI_Recv(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
-				}
 			}
 		}
 	}
 	
-	// VERSION 2
-	// for (step = 1; step <= nb_proc; step++) {
-	// 	if (my_rank%2 == 0) {
-	// 		if (step%2 != 0) {
-	// 			if (my_rank != nb_proc-1) {
-	// 				MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
-	// 				MPI_Recv(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
-	// 				merge(tab_sort, tab_tmp);
-	// 			}
-	// 		}
-	// 		else {
-	// 			if (my_rank != 0) {
-	// 				MPI_Send(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
-	// 				MPI_Recv(tab_tmp, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
-	// 				merge(tab_tmp, tab_sort);
-	// 			}
-	// 		}
-	// 	}
-	// 	else {
-	// 		if (step%2 != 0) {
-	// 			MPI_Send(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD);
-	// 			MPI_Recv(tab_sort, k, MPI_INT, left, TAG_TAB, MPI_COMM_WORLD, &status);
-	// 			merge(tab_tmp, tab_sort);
-	// 		}
-	// 		else {
-	// 			if (my_rank != nb_proc-1) {
-	// 				MPI_Send(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
-	// 				MPI_Recv(tab_sort, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
-	// 				merge(tab_sort, tab_tmp);
-	// 			}
-	// 		}
-	// 	}
-	// }
 	
 	// fin du chronométrage
 	end = MPI_Wtime();

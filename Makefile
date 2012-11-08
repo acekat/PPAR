@@ -8,8 +8,12 @@ RUN=mpirun
 
 P=48
 PNODE=4
-TH=4
 N=1572864
+SORT=1
+
+ifdef TH
+THOPT=-x OMP_NUM_THREADS=$(TH)
+endif
 
 ifdef HF
 HFOPT=-hostfile $(HF)
@@ -21,14 +25,7 @@ tris: $(SRC)
 	$(COMP) $(FLAGS) $@.c -fopenmp -o $@
 
 exec: 
-	make nohyb HF=hostfile201
-	make hyb HF=hostfile201 P=12 PNODE=1
-
-nohyb:
-	$(RUN) -n $(P) -npernode $(PNODE) $(HFOPT) $T $(N)
-
-hyb:
-	$(RUN) -x OMP_NUM_THREADS=$(TH) -n $(P) -npernode $(PNODE) $(HFOPT) $T $(N) -hyb
+	$(RUN) $(THOPT) -n $(P) -npernode $(PNODE) $(HFOPT) $T $(N) $(SORT)
 
 clean:
 	rm $T
