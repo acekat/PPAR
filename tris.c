@@ -37,14 +37,14 @@ char usage[] = "\
  * Affiche le contenu du tableau.
  * @param tab
  */
-void print_tab(int *tab)
+void print_tab(int *tab, int tab_len)
 {
 	int i;
 	printf("\t[");
-	for (i = 0; i < k-1; i++) {
+	for (i = 0; i < tab_len; i++) {
 		printf("%d, ",tab[i]);
 	}
-	printf("%d]\n", tab[k-1]);
+	printf("%d]\n", tab[tab_len-1]);
 }
 
 /**
@@ -74,10 +74,10 @@ void print_results(double total, int nb_proc)
  * Initialise le tableau avec des valeurs aléatoires.
  * @param tab
  */
-void init_rand(int *tab)
+void init_rand(int *tab, int tab_len)
 {	
 	int i;
-	for (i = 0; i < k; i++) {
+	for (i = 0; i < tab_len; i++) {
 		srandom(time(NULL)+i*my_rank);
 		tab[i] = random();		
 	}
@@ -89,10 +89,10 @@ void init_rand(int *tab)
  * @return     1: tri incorrect
  *             0: tri correct
  */
-int check_local(int *tab)
+int check_local(int *tab, int tab_len)
 {
 	int i = 1;
-	while (i < k) {
+	while (i < tab_len) {
 		if (tab[i-1] <= tab[i]) 
 			i++;
 		else {
@@ -109,10 +109,10 @@ int check_local(int *tab)
  * @return     1: tri incorrect
  *             0: tri correct
  */
-int check_sort(int *tab)
+int check_sort(int *tab, int tab_len)
 {
 	int min = tab[0];
-	int max = tab[k-1];
+	int max = tab[tab_len-1];
 	
 	if (my_rank != nb_proc-1)
 		MPI_Send(&max, 1, MPI_INT, my_rank+1, TAG_CHECK, MPI_COMM_WORLD);
@@ -120,7 +120,7 @@ int check_sort(int *tab)
 	if (my_rank != 0)
 		MPI_Recv(&min, 1, MPI_INT, my_rank-1, TAG_CHECK, MPI_COMM_WORLD, NULL);
 	
-	if (check_local(tab) || (min > tab[0])) {
+	if (check_local(tab, tab_len) || (min > tab[0])) {
 		printf("%d : /!\\ TRI GLOBAL INCORRECT /!\\ \n", my_rank);
 		return 1;
 	}
@@ -130,8 +130,8 @@ int check_sort(int *tab)
 
 /**
  * Algorithme du tri PRAM
- * @param tab_in  
- * @param tab_out 
+ * @param tab_in  non trié
+ * @param tab_out trié
  */
 void PRAM(int *tab_in, int *tab_out)
 {
@@ -173,8 +173,8 @@ void PRAM(int *tab_in, int *tab_out)
 
 /**
  * Algorithme du tri PRAM en version openMP
- * @param tab_in  
- * @param tab_out 
+ * @param tab_in  non trié
+ * @param tab_out trié
  */
 void PRAM_omp(int *tab_in, int *tab_out)
 {
@@ -232,12 +232,24 @@ void PRAM_omp(int *tab_in, int *tab_out)
 }
 
 /**
+ * Algorithme du tri rapide
+ * @param tab_in  non trié
+ * @param tab_out trié
+ */
+void quick_sort(int *tab_in, int *tab_out)
+{
+
+}
+
+
+
+/**
  * Réarrange les éléments des tableaux en mettant les plus petits éléments
  * dans tab1 et les plus grands dans tab2.
  * @param tab1 
  * @param tab2 
  */
-void merge(int *tab1, int *tab2)
+void merge_sort(int *tab1, int *tab2)
 {
 	int ind, ind1, ind2;
 	int *tmp = (int *)malloc(2*k*sizeof(int));
@@ -316,7 +328,7 @@ int main(int argc, char* argv[])
 	int right = my_rank+1;
 
 	// initialise le tableau local
-	init_rand(tab_tmp);
+	init_rand(tab_tmp, k);
 
 	if (my_rank == 0)
 		printf("Calcul...\n");
@@ -330,6 +342,10 @@ int main(int argc, char* argv[])
 		PRAM(tab_tmp, tab_sort);
 	else if (sort_type == 2)
 		PRAM_omp(tab_tmp, tab_sort);
+	// else if (sort_type == 3)
+	// 	quick_sort(tab_tmp, tab_sort);
+	// else if (sort_type == 4)
+	// 	quick_sort_omp(tab_tmp, tab_sort);
 
 	// tri pair-impair
 	int step;
@@ -337,7 +353,7 @@ int main(int argc, char* argv[])
 		if ((my_rank%2) - (step%2) == 0) {
 			if (my_rank != nb_proc-1) {
 				MPI_Recv(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD, &status);
-				merge(tab_sort, tab_tmp);
+				merge_sort(tab_sort, tab_tmp);
 				MPI_Send(tab_tmp, k, MPI_INT, right, TAG_TAB, MPI_COMM_WORLD);
 			}
 		}
@@ -369,7 +385,7 @@ int main(int argc, char* argv[])
 		MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &file);
 		MPI_File_write_at(file, my_offset, tab_sort, k, MPI_INT, &status);
 		// printf("(%d) a écrit: ", my_rank);
-		// print_tab(tab_sort);
+		// print_tab(tab_sort, k);
 		
 		// attends que tous aient écrit
 		MPI_Barrier(MPI_COMM_WORLD);
@@ -377,14 +393,14 @@ int main(int argc, char* argv[])
 		MPI_File_read_ordered(file, tab_sort, k, MPI_INT, &status);
 		MPI_File_close(&file);
 		// printf("(%d) a lu: ", my_rank);
-		// print_tab(tab_sort);
+		// print_tab(tab_sort, k);
 	}
 
 	// Vérification du tri
 	if (my_rank == 0)
 		printf("Vérification du tri...\n");
 
-	if (!check_sort(tab_sort) && (my_rank == 0))
+	if (!check_sort(tab_sort, k) && (my_rank == 0))
 		printf("\tTri correct!\n");
 
 	free(tab_sort);
