@@ -236,9 +236,35 @@ void PRAM_omp(int *tab_in, int *tab_out)
  * @param tab_in  non trié
  * @param tab_out trié
  */
-void quick_sort(int *tab_in, int *tab_out)
-{
+int partition(int *tab, int left, int right) {
+   int pivot, i, j, t;
+   pivot = tab[left];
+   i = left; 
+   j = right+1;
+		
+   while(1){
+		do ++i; while(tab[i] <= pivot && i <= right );
+		do --j; while(tab[j] > pivot );
+		if(i >= j) 
+			break;
+		t = tab[i]; 
+		tab[i] = tab[j]; 
+		tab[j] = t;
+   }
+   t = tab[left]; 
+   tab[left] = tab[j]; 
+   tab[j] = t;
+   return j;
+}
 
+void quick_sort( int *tab, int left, int right)
+{
+   int j;
+   if(left < right){
+		j = partition(tab, left, right);
+		quick_sort(tab, left, j-1);
+		quick_sort(tab, j+1, right);
+   }	
 }
 
 
