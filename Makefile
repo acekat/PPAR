@@ -17,6 +17,8 @@ endif
 
 ifdef HF
 HFOPT=-hostfile $(HF)
+# else
+# $(error Préciser un fichier hostfile)
 endif
 
 all: tris

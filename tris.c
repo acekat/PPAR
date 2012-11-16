@@ -29,22 +29,26 @@ char usage[] = "\
   tris <nb elem> <type tri>\n\
 \n\
   <type tri>:\n\
-    1: PRAM - MPI pur\n\
-    2: PRAM - hybride\n\
+	1: PRAM - MPI pur\n\
+	2: PRAM - hybride\n\
+	3: quick_sort - MPI pur\n\
+	4: quick_sort - hybride\n\
+	5: qsort (stdlib.h) - MPI pur\n\
 ";
 
 /**
  * Affiche le contenu du tableau.
- * @param tab
+ * @param tab 
+ * @param len 
  */
-void print_tab(int *tab, int tab_len)
+void print_tab(int *tab, int len)
 {
 	int i;
 	printf("\t[");
-	for (i = 0; i < tab_len; i++) {
+	for (i = 0; i < len-1; i++) {
 		printf("%d, ",tab[i]);
 	}
-	printf("%d]\n", tab[tab_len-1]);
+	printf("%d]\n", tab[len-1]);
 }
 
 /**
@@ -72,27 +76,45 @@ void print_results(double total, int nb_proc)
 
 /**
  * Initialise le tableau avec des valeurs aléatoires.
- * @param tab
+ * @param tab 
+ * @param len 
  */
-void init_rand(int *tab, int tab_len)
+void init_rand(int *tab, int len)
 {	
 	int i;
-	for (i = 0; i < tab_len; i++) {
+	for (i = 0; i < len; i++) {
 		srandom(time(NULL)+i*my_rank);
 		tab[i] = random();		
 	}
 }
 
 /**
+ * Fonction de comparaison pour qsort de stdlib.h
+ * @param  a 
+ * @param  b 
+ * @return    0 si a = b
+ *           <0 si a < b
+ *           >0 si a > b
+ */
+int compare(void const *a, void const *b)
+{
+   int const *pa = a;
+   int const *pb = b;
+
+   return *pa - *pb;
+}
+
+/**
  * Vérifie si les éléments locaus sont correctement triés
  * @param  tab tableau des éléments locaux
+ * @param  len
  * @return     1: tri incorrect
  *             0: tri correct
  */
-int check_local(int *tab, int tab_len)
+int check_local(int *tab, int len)
 {
 	int i = 1;
-	while (i < tab_len) {
+	while (i < len) {
 		if (tab[i-1] <= tab[i]) 
 			i++;
 		else {
@@ -106,13 +128,14 @@ int check_local(int *tab, int tab_len)
 /**
  * Vérifie si tous les éléments sont triés correctement
  * @param  tab tableau des éléments locaux
+ * @param  len
  * @return     1: tri incorrect
  *             0: tri correct
  */
-int check_sort(int *tab, int tab_len)
+int check_sort(int *tab, int len)
 {
 	int min = tab[0];
-	int max = tab[tab_len-1];
+	int max = tab[len-1];
 	
 	if (my_rank != nb_proc-1)
 		MPI_Send(&max, 1, MPI_INT, my_rank+1, TAG_CHECK, MPI_COMM_WORLD);
@@ -120,7 +143,7 @@ int check_sort(int *tab, int tab_len)
 	if (my_rank != 0)
 		MPI_Recv(&min, 1, MPI_INT, my_rank-1, TAG_CHECK, MPI_COMM_WORLD, NULL);
 	
-	if (check_local(tab, tab_len) || (min > tab[0])) {
+	if (check_local(tab, len) || (min > tab[0])) {
 		printf("%d : /!\\ TRI GLOBAL INCORRECT /!\\ \n", my_rank);
 		return 1;
 	}
@@ -196,30 +219,29 @@ void PRAM_omp(int *tab_in, int *tab_out)
 	
 	// comparaisons
 	// VERSION 1
-	#pragma omp parallel for private(j)
-	for (i = 0; i < k; i++) {
-		for (j = i+1; j < k; j++) {
-			if (tab_in[i] > tab_in[j]) {
-				#pragma omp atomic
-				count[i]++;
-			}
-			else {
-				#pragma omp atomic
-				count[j]++;
-			}
-		}
-	}
-
-
-	// VERSION 2
-	// #pragma omp parallel for private(j) 
+	// #pragma omp parallel for private(j)
 	// for (i = 0; i < k; i++) {
-	// 	for (j = 0; j < k; j++) {
-	// 		if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
-	// 		count[i]++;
+	// 	for (j = i+1; j < k; j++) {
+	// 		if (tab_in[i] > tab_in[j]) {
+	// 			#pragma omp atomic
+	// 			count[i]++;
+	// 		}
+	// 		else {
+	// 			#pragma omp atomic
+	// 			count[j]++;
+	// 		}
 	// 	}
 	// }
 
+
+	// VERSION 2
+	#pragma omp parallel for private(j) 
+	for (i = 0; i < k; i++) {
+		for (j = 0; j < k; j++) {
+			if (((j<i) && (tab_in[i] == tab_in[j])) || (tab_in[i] > tab_in[j]))
+			count[i]++;
+		}
+	}
 
 	// réarrangement
 	#pragma omp parallel for private(cpt)
@@ -232,16 +254,123 @@ void PRAM_omp(int *tab_in, int *tab_out)
 }
 
 /**
- * Algorithme du tri rapide
- * @param tab_in  non trié
- * @param tab_out trié
+ * Méthode de sélection d'un pivot par valeur médiane du premier, dernier et 
+ * élément centrale du tableau
+ * @param  tab     
+ * @param  len 
+ * @return         indice du pivot
  */
-void quick_sort(int *tab_in, int *tab_out)
+int pivot(int *tab, int len)
 {
+	int ibeg=0, imid=len/2, iend=len-1;
+	int beg=tab[ibeg], mid=tab[imid], end=tab[iend];
 
+	if(beg < mid) {
+		if(mid < end)
+			return imid;		
+		if(end < beg)
+			return ibeg;
+	} else {
+		if(beg < end) 
+			return ibeg;
+		if(end < mid)
+			return imid;
+	}
+	return iend;
+}
+
+/**
+ * Echange les éléments aux adresses mémoires en paramètre.
+ * @param i adresse du premier élément
+ * @param j adresse du second élément
+ */
+void swap(int *i, int *j)
+{
+	int tmp = *i;
+	*i = *j;
+	*j = tmp;
+}
+
+/**
+ * Algorithme de tri rapide
+ * @param tab tableau à trier
+ * @param len longueur du tableau
+ */
+void quick_sort(int *tab, int len)
+{
+	int i=0, j=len, ipivot;
+	
+	// pas de tri à faire
+	if (len <= 1) 
+		return;
+
+	// pas assez d'éléments pour choisir un pivot
+	if (len < 3) {
+		if (tab[1] < tab[0])
+			swap(&tab[1], &tab[0]);
+		return;
+	}
+	
+	// choix d'un pivot
+	ipivot = pivot(tab, len);
+	swap(&tab[0], &tab[ipivot]);
+
+	while(1) {
+		do i++; while (i < len && tab[i] < tab[0]);
+		do j--; while (tab[j] > tab[0]);
+		if (j < i) break;
+		swap(&tab[i], &tab[j]);
+	}
+
+	swap(&tab[0], &tab[j]);
+	quick_sort(tab, j);
+	quick_sort(tab+j+1, len-j-1);
+}
+
+void _quick_sort_omp(int *tab, int len)
+{
+	int i=0, j=len, ipivot;
+	
+	// pas de tri à faire
+	if (len <= 1) 
+		return;
+
+	// pas assez d'éléments pour choisir un pivot
+	if (len < 3) {
+		if (tab[1] < tab[0])
+			swap(&tab[1], &tab[0]);
+		return;
+	}
+	
+	// choix d'un pivot
+	ipivot = pivot(tab, len);
+	swap(&tab[0], &tab[ipivot]);
+
+	while(1) {
+		do i++; while (i < len && tab[i] < tab[0]);
+		do j--; while (tab[j] > tab[0]);
+		if (j < i) break;
+		swap(&tab[i], &tab[j]);
+	}
+
+	swap(&tab[0], &tab[j]);
+
+	#pragma omp task
+	quick_sort(tab, j);
+	
+	#pragma omp task
+	quick_sort(tab+j+1, len-j-1);
 }
 
 
+void quick_sort_omp(int *tab, int len)
+{
+	#pragma omp parallel
+	{
+		#pragma omp single
+		_quick_sort_omp(tab, len);
+	}
+}
 
 /**
  * Réarrange les éléments des tableaux en mettant les plus petits éléments
@@ -310,8 +439,6 @@ int main(int argc, char* argv[])
 	// TODO: tester != 0
 	int nb_elem = atoi(argv[1]);	// nombre d'éléments total
 	int sort_type = atoi(argv[2]);
-	// 1: PRAM - MPI pur
-	// 2: PRAM - hybride
 
 	k = nb_elem / nb_proc;
 
@@ -328,7 +455,15 @@ int main(int argc, char* argv[])
 	int right = my_rank+1;
 
 	// initialise le tableau local
-	init_rand(tab_tmp, k);
+	if (my_rank == 0)
+		printf("Initialisation du tableau...\n");
+	switch (sort_type) {
+		case 1:	
+		case 2: init_rand(tab_tmp, k); break;
+		case 3:
+		case 4:
+		case 5: init_rand(tab_sort, k); break;
+	}
 
 	if (my_rank == 0)
 		printf("Calcul...\n");
@@ -337,15 +472,13 @@ int main(int argc, char* argv[])
 	double start, end;
 	start = MPI_Wtime();
 	
-	// tri le tableau local
-	if (sort_type == 1)
-		PRAM(tab_tmp, tab_sort);
-	else if (sort_type == 2)
-		PRAM_omp(tab_tmp, tab_sort);
-	// else if (sort_type == 3)
-	// 	quick_sort(tab_tmp, tab_sort);
-	// else if (sort_type == 4)
-	// 	quick_sort_omp(tab_tmp, tab_sort);
+	switch (sort_type) {
+		case 1: PRAM(tab_tmp, tab_sort); break;
+		case 2: PRAM_omp(tab_tmp, tab_sort); break;
+		case 3: quick_sort(tab_sort, k); break;
+		case 4: quick_sort_omp(tab_sort, k); break;
+		case 5: qsort(tab_sort, k, sizeof(int), compare); break;
+	}
 
 	// tri pair-impair
 	int step;
@@ -410,39 +543,6 @@ int main(int argc, char* argv[])
 	MPI_Finalize();
 	return 0;
 }
-
-// N: nombre d'éléments à trier
-// P: nombre de processus
-// R: rang du processus [0..P-1]
-// E: numéro de l'étape [1..P]
-
-// k = N/P
-// R.gauche = R-1
-// R.droite = R+1
-
-// Pour P étapes
-// 	Si R pair
-// 		Si E impair
-// 			Si R+1 == P
-// 				continue
-// 			recevoir tab de R.droite (bloquant)
-// 			fusion trié du tableau reçu et du tableau local
-// 			envoyer k plus grands éléments à R.droite
-// 		Sinon
-// 			Si R == 0
-// 				continue
-// 			recevoir tab de R.gauche (bloquant)
-// 			fusion trié du tableau reçu et du tableau local
-// 			envoyer k plus petits éléments à R.gauche
-// 	Sinon
-// 		Si E impair
-// 			envoyer tab à R.gauche
-// 			recevoir tab de R.gauche (bloquant)
-// 		sinon
-// 			Si R+1 == P
-// 				continue
-// 			envoyer tab à R.droite
-// 			recevoir tab de R.droite (bloquant)
 
 // Si R == 0
 // 	ecrire tab dans le fichier
