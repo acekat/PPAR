@@ -356,10 +356,10 @@ void _quick_sort_omp(int *tab, int len)
 	swap(&tab[0], &tab[j]);
 
 	#pragma omp task
-	quick_sort(tab, j);
+	_quick_sort_omp(tab, j);
 	
 	#pragma omp task
-	quick_sort(tab+j+1, len-j-1);
+	_quick_sort_omp(tab+j+1, len-j-1);
 }
 
 

@@ -11,6 +11,8 @@ PNODE=4
 N=1572864
 SORT=1
 
+# si P>PNODE & !HF => ERREUR
+
 ifdef TH
 THOPT=-x OMP_NUM_THREADS=$(TH)
 endif
