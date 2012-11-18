@@ -8,7 +8,7 @@ RUN=mpirun
 
 P=4
 PNODE=4
-N=1572864
+N=100000
 SORT=1
 
 ifdef TH
