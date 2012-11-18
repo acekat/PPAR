@@ -38,8 +38,8 @@ char usage[] = "\
 
 /**
  * Affiche le contenu du tableau.
- * @param tab 
- * @param len 
+ * @param tab tableau à afficher
+ * @param len longueur du tableau
  */
 void print_tab(int *tab, int len)
 {
@@ -53,10 +53,9 @@ void print_tab(int *tab, int len)
 
 /**
  * Affiche le temps maximal de calcul
- * @param total   temps total de chaque processus
- * @param nb_proc 
+ * @param total temps total de chaque processus
  */
-void print_results(double total, int nb_proc)
+void print_results(double total)
 {
 	int i;
 	double tmp;
@@ -76,8 +75,8 @@ void print_results(double total, int nb_proc)
 
 /**
  * Initialise le tableau avec des valeurs aléatoires.
- * @param tab 
- * @param len 
+ * @param tab tableau à initialiser
+ * @param len longueur du tableau
  */
 void init_rand(int *tab, int len)
 {	
@@ -107,7 +106,7 @@ int compare(void const *a, void const *b)
 /**
  * Vérifie si les éléments locaus sont correctement triés
  * @param  tab tableau des éléments locaux
- * @param  len
+ * @param  len longueur du tableau
  * @return     1: tri incorrect
  *             0: tri correct
  */
@@ -128,7 +127,7 @@ int check_local(int *tab, int len)
 /**
  * Vérifie si tous les éléments sont triés correctement
  * @param  tab tableau des éléments locaux
- * @param  len
+ * @param  len longueur du tableau
  * @return     1: tri incorrect
  *             0: tri correct
  */
@@ -255,10 +254,10 @@ void PRAM_omp(int *tab_in, int *tab_out)
 
 /**
  * Méthode de sélection d'un pivot par valeur médiane du premier, dernier et 
- * élément centrale du tableau
- * @param  tab     
- * @param  len 
- * @return         indice du pivot
+ * élément centrale du tableau.
+ * @param  tab tableau dans lequel calculer le pivot
+ * @param  len longueur du tableau
+ * @return     indice du pivot
  */
 int pivot(int *tab, int len)
 {
@@ -327,6 +326,11 @@ void quick_sort(int *tab, int len)
 	quick_sort(tab+j+1, len-j-1);
 }
 
+/**
+ * Algorithme de tri rapide parallélisé par tâche
+ * @param tab tableau à trié
+ * @param len longueur du tableau
+ */
 void _quick_sort_omp(int *tab, int len)
 {
 	int i=0, j=len, ipivot;
@@ -362,7 +366,11 @@ void _quick_sort_omp(int *tab, int len)
 	_quick_sort_omp(tab+j+1, len-j-1);
 }
 
-
+/**
+ * Lanceur de l'algorithme de tri rapide pour une parallélisation par tâche
+ * @param tab tableau à trier
+ * @param len longueur du tableau
+ */
 void quick_sort_omp(int *tab, int len)
 {
 	#pragma omp parallel
@@ -373,8 +381,8 @@ void quick_sort_omp(int *tab, int len)
 }
 
 /**
- * Réarrange les éléments des tableaux en mettant les plus petits éléments
- * dans tab1 et les plus grands dans tab2.
+ * Réarrange en triant les éléments des deux tableaux.
+ * Les plus petits dans tab1 et les plus grands dans tab2.
  * @param tab1 
  * @param tab2 
  */
@@ -438,7 +446,7 @@ int main(int argc, char* argv[])
 
 	// TODO: tester != 0
 	int nb_elem = atoi(argv[1]);	// nombre d'éléments total
-	int sort_type = atoi(argv[2]);
+	int sort_type = atoi(argv[2]);	// type de l'algorithme de tri
 
 	k = nb_elem / nb_proc;
 
@@ -456,7 +464,7 @@ int main(int argc, char* argv[])
 
 	// initialise le tableau local
 	if (my_rank == 0)
-		printf("Initialisation du tableau...\n");
+		printf("Initialisation du tableau...");
 	switch (sort_type) {
 		case 1:	
 		case 2: init_rand(tab_tmp, k); break;
@@ -464,6 +472,8 @@ int main(int argc, char* argv[])
 		case 4:
 		case 5: init_rand(tab_sort, k); break;
 	}
+	if (my_rank == 0)
+		printf(" OK!\n");
 
 	if (my_rank == 0)
 		printf("Calcul...\n");
@@ -472,6 +482,7 @@ int main(int argc, char* argv[])
 	double start, end;
 	start = MPI_Wtime();
 	
+	// choix de l'algorithme de tri
 	switch (sort_type) {
 		case 1: PRAM(tab_tmp, tab_sort); break;
 		case 2: PRAM_omp(tab_tmp, tab_sort); break;
@@ -498,16 +509,15 @@ int main(int argc, char* argv[])
 		}
 	}
 	
-	
 	// fin du chronométrage
 	end = MPI_Wtime();
 
-	print_results(end - start, nb_proc);
+	print_results(end - start);
 
 	// écriture dans le fichier 	
 	if (nb_elem <= N) {
 		if (my_rank == 0)
-			printf("Ecriture du fichier...\n");
+			printf("Ecriture du fichier...");
 
 		MPI_File file; 
 		MPI_Offset my_offset;
@@ -527,6 +537,9 @@ int main(int argc, char* argv[])
 		MPI_File_close(&file);
 		// printf("(%d) a lu: ", my_rank);
 		// print_tab(tab_sort, k);
+
+		if (my_rank == 0)
+			printf(" OK!\n");
 	}
 
 	// Vérification du tri
@@ -543,12 +556,3 @@ int main(int argc, char* argv[])
 	MPI_Finalize();
 	return 0;
 }
-
-// Si R == 0
-// 	ecrire tab dans le fichier
-// 	envoyer ECRIT à R.droite
-// else
-// 	recevoir ECRIT de R.gauche (bloquant)
-// 	ecrire tab à la suite du fichier
-// 	Si R < P-1
-// 		envoyer ECRIT à R.droite

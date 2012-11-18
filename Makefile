@@ -29,7 +29,7 @@ tris: $(SRC)
 	$(COMP) $(FLAGS) $@.c -fopenmp -o $@
 
 exec: 
-	$(RUN) $(THOPT) -n $(P) -npernode $(PNODE) $(HFOPT) $T $(N) $(SORT)
+	$(RUN) -n $(P) -npernode $(PNODE) $(THOPT) $(HFOPT) $T $(N) $(SORT)
 
 clean:
 	rm $T
