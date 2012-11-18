@@ -15,10 +15,12 @@
 #include <omp.h>
 #endif
 
-#define N 1572864	// nombre maximum d'éléments à imprimer
+#define NMAX 1572864	// nombre maximum d'éléments à écrire dans le fichier
 #define TAG_TAB 0
 #define TAG_RES 1
 #define TAG_CHECK 2
+
+#define P0 if (my_rank == 0)
 
 int my_rank;	// rang du processus
 int nb_proc;	// nombre de processus
@@ -67,9 +69,13 @@ void print_results(double total)
 			MPI_Recv(&tmp, 1, MPI_DOUBLE, MPI_ANY_SOURCE, TAG_RES, MPI_COMM_WORLD, NULL);
 			total = tmp > total ? tmp : total;
 		}
-		printf("\tTri en %g sec\n", total);
+		printf("\tTri en %f sec\n", total);
 
 		// TODO: calculer l'accélération et l'efficacité
+
+		#ifdef BENCH
+		fprintf(stderr, "%f", total);
+		#endif
 	}
 }
 
@@ -207,14 +213,6 @@ void PRAM_omp(int *tab_in, int *tab_out)
 		fprintf(stderr, "Erreur allocation mémoire du tableau \n");
 		exit(1);
 	}
-
-	// #pragma omp parallel
-	// {
-	// 	#ifdef _OPENMP
-	// 	printf("== %d : %d threads\n", my_rank, omp_get_num_threads());
-	// 	printf("== %d : %d\n", my_rank, omp_get_thread_num());
-	// 	#endif
-	// }
 	
 	// comparaisons
 	// VERSION 1
@@ -463,8 +461,7 @@ int main(int argc, char* argv[])
 	int right = my_rank+1;
 
 	// initialise le tableau local
-	if (my_rank == 0)
-		printf("Initialisation du tableau...");
+	P0 printf("Initialisation du tableau...");
 	switch (sort_type) {
 		case 1:	
 		case 2: init_rand(tab_tmp, k); break;
@@ -472,11 +469,9 @@ int main(int argc, char* argv[])
 		case 4:
 		case 5: init_rand(tab_sort, k); break;
 	}
-	if (my_rank == 0)
-		printf(" OK!\n");
+	P0 printf(" OK!\n");
 
-	if (my_rank == 0)
-		printf("Calcul...\n");
+	P0 printf("Calcul...\n");
 
 	// début du chronométrage
 	double start, end;
@@ -515,9 +510,8 @@ int main(int argc, char* argv[])
 	print_results(end - start);
 
 	// écriture dans le fichier 	
-	if (nb_elem <= N) {
-		if (my_rank == 0)
-			printf("Ecriture du fichier...");
+	if (nb_elem <= NMAX) {
+		P0 printf("Ecriture du fichier...");
 
 		MPI_File file; 
 		MPI_Offset my_offset;
@@ -538,16 +532,36 @@ int main(int argc, char* argv[])
 		// printf("(%d) a lu: ", my_rank);
 		// print_tab(tab_sort, k);
 
-		if (my_rank == 0)
-			printf(" OK!\n");
+		P0 printf(" OK!\n");
 	}
 
 	// Vérification du tri
-	if (my_rank == 0)
-		printf("Vérification du tri...\n");
+	P0 printf("Vérification du tri...\n");
 
 	if (!check_sort(tab_sort, k) && (my_rank == 0))
 		printf("\tTri correct!\n");
+
+	#ifdef BENCH
+	P0 fprintf(stderr, "\t%d\t%d", nb_elem, nb_proc);
+
+	// #pragma omp parallel
+	// {
+	// 	#ifdef _OPENMP
+	// 	printf("== %d : %d threads\n", my_rank, omp_get_num_threads());
+	// 	printf("== %d : %d\n", my_rank, omp_get_thread_num());
+	// 	#endif
+	// }
+
+		#ifdef _OPENMP
+		#pragma omp parallel
+		{
+			if ((my_rank == 0) && (omp_get_thread_num() == 0))
+				fprintf(stderr, "\t%d", omp_get_num_threads());
+		}
+		#endif
+	
+	P0 fprintf(stderr, "\n");
+	#endif 
 
 	free(tab_sort);
 	free(tab_tmp);

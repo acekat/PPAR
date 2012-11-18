@@ -1,9 +1,5 @@
-*
-
-// fichiers a ne pas ignorer
-!tris.c
-!Makefile
-!hostfile*
-!resultats.txt
-!README.md
-!.gitignore
+tris
+test/
+doc/
+rapport/
+old/

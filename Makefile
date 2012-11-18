@@ -6,30 +6,38 @@ COMP=mpicc
 FLAGS=-Wall -O3
 RUN=mpirun
 
-P=48
+P=4
 PNODE=4
 N=1572864
 SORT=1
 
-# si P>PNODE & !HF => ERREUR
-
 ifdef TH
 THOPT=-x OMP_NUM_THREADS=$(TH)
+THB=-$(TH)
 endif
 
 ifdef HF
 HFOPT=-hostfile $(HF)
-# else
-# $(error Préciser un fichier hostfile)
 endif
 
 all: tris
 
-tris: $(SRC)
+$T: $(SRC)
 	$(COMP) $(FLAGS) $@.c -fopenmp -o $@
 
-exec: 
-	$(RUN) -n $(P) -npernode $(PNODE) $(THOPT) $(HFOPT) $T $(N) $(SORT)
+exec:
+	@if [ $(P) -gt $(PNODE) ] && [ -n $(HF) ]; then \
+		echo "/!\\ Préciser un fichier hostfile pour lancer l'exécution sur plusieurs machines. /!\\"; \
+	else \
+		echo $(RUN) -n $(P) -npernode $(PNODE) $(THOPT) $(HFOPT) $T $(N) $(SORT); \
+		$(RUN) -n $(P) -npernode $(PNODE) $(THOPT) $(HFOPT) $T $(N) $(SORT); \
+	fi
+
+bench-compile: $(SRC)
+	$(COMP) $(FLAGS) $(T).c -fopenmp -D BENCH -o $T
+
+bench: bench-compile
+	$(RUN) -n $(P) -npernode $(PNODE) $(THOPT) $(HFOPT) $T $(N) $(SORT) 2>> bench/$(N)-$(P)-$(PNODE)$(THB)
 
 clean:
 	rm $T
