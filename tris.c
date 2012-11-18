@@ -544,21 +544,13 @@ int main(int argc, char* argv[])
 	#ifdef BENCH
 	P0 fprintf(stderr, "\t%d\t%d", nb_elem, nb_proc);
 
-	// #pragma omp parallel
-	// {
-	// 	#ifdef _OPENMP
-	// 	printf("== %d : %d threads\n", my_rank, omp_get_num_threads());
-	// 	printf("== %d : %d\n", my_rank, omp_get_thread_num());
-	// 	#endif
-	// }
-
-		#ifdef _OPENMP
-		#pragma omp parallel
-		{
-			if ((my_rank == 0) && (omp_get_thread_num() == 0))
-				fprintf(stderr, "\t%d", omp_get_num_threads());
-		}
-		#endif
+	#ifdef _OPENMP
+	#pragma omp parallel
+	{
+		if ((my_rank == 0) && (omp_get_thread_num() == 0))
+			fprintf(stderr, "\t%d", omp_get_num_threads());
+	}
+	#endif
 	
 	P0 fprintf(stderr, "\n");
 	#endif 
