@@ -542,7 +542,7 @@ int main(int argc, char* argv[])
 		printf("\tTri correct!\n");
 
 	#ifdef BENCH
-	P0 fprintf(stderr, "\t%d\t%d", nb_elem, nb_proc);
+	P0 fprintf(stderr, "\t%d\t%d\t%d", sort_type, nb_elem, nb_proc);
 
 	#ifdef _OPENMP
 	#pragma omp parallel

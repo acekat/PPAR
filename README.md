@@ -33,9 +33,9 @@ make bench <options>
 
 Ecris la ligne de résultat dans le fichier correspondant du dossier *bench*
 
-Format fichier: N-P-PNODE[-TH]
+Format fichier: SORT-N-P-PNODE[-TH]
 
-Format ligne: temps   N   P   TH
+Format ligne: temps   SORT   N   P   TH
 
 ## TODO
 - calculer l'accélération et l'efficacité dans les résultats
