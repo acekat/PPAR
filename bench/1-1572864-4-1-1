@@ -1,0 +1,172 @@
+--------------------------------------------------------------------------
+Your job has requested a conflicting number of processes for the
+application:
+
+App: tris
+number of procs:  4
+
+This is more processes than we can launch under the following
+additional directives and conditions:
+
+number of nodes:   1
+npernode:   1
+
+Please revise the conflict and try again.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+Your job has requested a conflicting number of processes for the
+application:
+
+App: tris
+number of procs:  4
+
+This is more processes than we can launch under the following
+additional directives and conditions:
+
+number of nodes:   1
+npernode:   1
+
+Please revise the conflict and try again.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+Your job has requested a conflicting number of processes for the
+application:
+
+App: tris
+number of procs:  4
+
+This is more processes than we can launch under the following
+additional directives and conditions:
+
+number of nodes:   1
+npernode:   1
+
+Please revise the conflict and try again.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+Your job has requested a conflicting number of processes for the
+application:
+
+App: tris
+number of procs:  4
+
+This is more processes than we can launch under the following
+additional directives and conditions:
+
+number of nodes:   1
+npernode:   1
+
+Please revise the conflict and try again.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+Your job has requested a conflicting number of processes for the
+application:
+
+App: tris
+number of procs:  4
+
+This is more processes than we can launch under the following
+additional directives and conditions:
+
+number of nodes:   1
+npernode:   1
+
+Please revise the conflict and try again.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+Your job has requested a conflicting number of processes for the
+application:
+
+App: tris
+number of procs:  4
+
+This is more processes than we can launch under the following
+additional directives and conditions:
+
+number of nodes:   1
+npernode:   1
+
+Please revise the conflict and try again.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+Your job has requested a conflicting number of processes for the
+application:
+
+App: tris
+number of procs:  4
+
+This is more processes than we can launch under the following
+additional directives and conditions:
+
+number of nodes:   1
+npernode:   1
+
+Please revise the conflict and try again.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+Your job has requested a conflicting number of processes for the
+application:
+
+App: tris
+number of procs:  4
+
+This is more processes than we can launch under the following
+additional directives and conditions:
+
+number of nodes:   1
+npernode:   1
+
+Please revise the conflict and try again.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+Your job has requested a conflicting number of processes for the
+application:
+
+App: tris
+number of procs:  4
+
+This is more processes than we can launch under the following
+additional directives and conditions:
+
+number of nodes:   1
+npernode:   1
+
+Please revise the conflict and try again.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+Your job has requested a conflicting number of processes for the
+application:
+
+App: tris
+number of procs:  4
+
+This is more processes than we can launch under the following
+additional directives and conditions:
+
+number of nodes:   1
+npernode:   1
+
+Please revise the conflict and try again.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+Your job has requested a conflicting number of processes for the
+application:
+
+App: tris
+number of procs:  4
+
+This is more processes than we can launch under the following
+additional directives and conditions:
+
+number of nodes:   1
+npernode:   1
+
+Please revise the conflict and try again.
+--------------------------------------------------------------------------
+mpirun: killing job...
+
+356.158489	1	1572864	4	1
+313.121222	1	1572864	4	1
+347.383663	1	1572864	4	1
+295.056890	1	1572864	4	1
+355.699002	1	1572864	4	1
