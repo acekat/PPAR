@@ -510,30 +510,30 @@ int main(int argc, char* argv[])
 	print_results(end - start);
 
 	// écriture dans le fichier 	
-	if (nb_elem <= NMAX) {
-		P0 printf("Ecriture du fichier...");
+	// if (nb_elem <= NMAX) {
+	// 	P0 printf("Ecriture du fichier...");
 
-		MPI_File file; 
-		MPI_Offset my_offset;
-		char filename[strlen("/Vrac/ppar_cassat_ducamain_sort")+1];
-		strcpy(filename, "/Vrac/ppar_cassat_ducamain_sort");	
+	// 	MPI_File file; 
+	// 	MPI_Offset my_offset;
+	// 	char filename[strlen("/Vrac/ppar_cassat_ducamain_sort")+1];
+	// 	strcpy(filename, "/Vrac/ppar_cassat_ducamain_sort");	
 
-		my_offset = my_rank * sizeof(int) * k;
-		MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &file);
-		MPI_File_write_at(file, my_offset, tab_sort, k, MPI_INT, &status);
-		// printf("(%d) a écrit: ", my_rank);
-		// print_tab(tab_sort, k);
+	// 	my_offset = my_rank * sizeof(int) * k;
+	// 	MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_RDWR, MPI_INFO_NULL, &file);
+	// 	MPI_File_write_at(file, my_offset, tab_sort, k, MPI_INT, &status);
+	// 	// printf("(%d) a écrit: ", my_rank);
+	// 	// print_tab(tab_sort, k);
 		
-		// attends que tous aient écrit
-		MPI_Barrier(MPI_COMM_WORLD);
+	// 	// attends que tous aient écrit
+	// 	MPI_Barrier(MPI_COMM_WORLD);
 		
-		MPI_File_read_ordered(file, tab_sort, k, MPI_INT, &status);
-		MPI_File_close(&file);
-		// printf("(%d) a lu: ", my_rank);
-		// print_tab(tab_sort, k);
+	// 	MPI_File_read_ordered(file, tab_sort, k, MPI_INT, &status);
+	// 	MPI_File_close(&file);
+	// 	// printf("(%d) a lu: ", my_rank);
+	// 	// print_tab(tab_sort, k);
 
-		P0 printf(" OK!\n");
-	}
+	// 	P0 printf(" OK!\n");
+	// }
 
 	// Vérification du tri
 	P0 printf("Vérification du tri...\n");

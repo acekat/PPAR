@@ -36,7 +36,7 @@ exec:
 bench-compile: $(SRC)
 	$(COMP) $(FLAGS) $(T).c -fopenmp -D BENCH -o $T
 
-bench: bench-compile
+bench:
 	$(RUN) -n $(P) -npernode $(PNODE) $(THOPT) $(HFOPT) $T $(N) $(SORT) 2>> bench/$(SORT)-$(N)-$(P)-$(PNODE)$(THB)
 
 clean:
