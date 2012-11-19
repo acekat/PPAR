@@ -26,7 +26,7 @@ $T: $(SRC)
 	$(COMP) $(FLAGS) $@.c -fopenmp -o $@
 
 exec:
-	@if [ $(P) -gt $(PNODE) ] && [ -n $(HF) ]; then \
+	@if [ $(P) -gt $(PNODE) ] && [ -z $(HF) ]; then \
 		echo "/!\\ Préciser un fichier hostfile pour lancer l'exécution sur plusieurs machines. /!\\"; \
 	else \
 		echo $(RUN) -n $(P) -npernode $(PNODE) $(THOPT) $(HFOPT) $T $(N) $(SORT); \
