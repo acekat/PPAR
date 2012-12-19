@@ -36,13 +36,3 @@ Ecris la ligne de résultat dans le fichier correspondant du dossier *bench*
 Format fichier: SORT-N-P-PNODE[-TH]
 
 Format ligne: temps   SORT   N   P   TH
-
-## TODO
-- calculer l'accélération et l'efficacité dans les résultats
-- Benchmark
-  - VERSION 1 & 2 tri_PRAM MPI pur => V1 WIN
-  - VERSION 1 & 2 tri_PRAM Hybride => V2 WIN
-  - Comparer performances MPI pur et hybride (PRAM et quick_sort)
-  - Comparer nb machines / nb processus / nb éléments (faire qques test pour voir des valeurs pertinentes)
-  - Avec/Sans optimisation -03
-  - Comparer quick_sort et qsort (MPI pur)
